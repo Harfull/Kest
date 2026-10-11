@@ -198,7 +198,7 @@ func TestSecretNeverPrints(t *testing.T) {
 		fmt.Sprintf("%v", s),
 		fmt.Sprintf("%+v", s),
 		fmt.Sprintf("%#v", s),
-		fmt.Sprintf("%s", s), //nolint:gosimple // deliberately exercising %s
+		fmt.Sprintf("secret=%s", s),
 	} {
 		if strings.Contains(got, "super-secret") {
 			t.Errorf("secret leaked in %q", got)

@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -78,7 +77,7 @@ func TestRunLogsReadyAndStopsOnCancel(t *testing.T) {
 func TestNewCreatesDataDir(t *testing.T) {
 	cfg := testConfig(t)
 
-	if _, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+	if _, err := New(cfg, slog.New(slog.DiscardHandler)); err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 

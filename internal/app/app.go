@@ -41,7 +41,7 @@ func New(cfg config.Config, log *slog.Logger) (*App, error) {
 //
 // Components are added here as the roadmap progresses; see docs/roadmap.md.
 func (a *App) Run(ctx context.Context) error {
-	a.log.Info("starting",
+	a.log.InfoContext(ctx, "starting",
 		"version", version.Version,
 		"commit", version.Commit,
 		"data_dir", a.cfg.DataDir,
@@ -51,9 +51,10 @@ func (a *App) Run(ctx context.Context) error {
 
 	// Phase 1 starts the store, scheduler, LLM client and Telegram transport here.
 
-	a.log.Info(ReadyMessage)
+	a.log.InfoContext(ctx, ReadyMessage)
 
 	<-ctx.Done()
-	a.log.Info("stopping")
+	// ctx is already cancelled here; the logger ignores it, and sloglint wants one passed.
+	a.log.InfoContext(ctx, "stopping")
 	return nil
 }

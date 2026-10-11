@@ -7,7 +7,10 @@ import (
 	"strings"
 )
 
-// Environment variable names. All carry the KEST_ prefix.
+// Environment variable names. All carry the KEST_ prefix. These are names,
+// not credentials, so gosec's hardcoded-credential rule does not apply.
+//
+//nolint:gosec // G101 false positive: variable names, not secret values
 const (
 	envConfig         = "KEST_CONFIG"
 	envDataDir        = "KEST_DATA_DIR"
