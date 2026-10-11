@@ -101,7 +101,7 @@ Rules:
 | Context key | unexported type | `type ctxKey struct{}` |
 | Env var | `KEST_` prefix, `UPPER_SNAKE` | `KEST_TELEGRAM_TOKEN` |
 | Config key | `snake_case` in TOML | `quiet_hours_start` |
-| Plugin ID | lowercase, `kebab-case`, globally unique | `gmail`, `smtp-mailbox` |
+| Plugin ID | lowercase, `kebab-case`, globally unique | `gmail`, `mailbox` |
 | Plugin tool name | `plugin_id.verb_noun` | `gmail.search_threads` |
 | DB table | plural `snake_case` | `sleep_logs` |
 | Migration | `NNNN_description.sql`, zero padded | `0003_add_habits.sql` |
