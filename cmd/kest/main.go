@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	_ "time/tzdata" // embed zone data so time.LoadLocation works in minimal containers
 
@@ -45,7 +46,16 @@ func run() error {
 		return fmt.Errorf("configuration:\n%w", err)
 	}
 
-	log, err := logging.New(os.Stderr, cfg.Log.Level, cfg.Log.Format)
+	log, err := logging.New(os.Stderr, logging.Options{
+		Level:  cfg.Log.Level,
+		Format: cfg.Log.Format,
+		Secrets: []string{
+			cfg.Telegram.Token.Reveal(),
+			cfg.LLM.APIKey.Reveal(),
+		},
+		// Content is only ever logged when both debug and sensitive are on.
+		Sensitive: cfg.Log.Sensitive && strings.EqualFold(cfg.Log.Level, "debug"),
+	})
 	if err != nil {
 		return err
 	}
