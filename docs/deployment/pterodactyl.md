@@ -34,7 +34,7 @@ Background and field-level notes: [../research/hosting/README.md](../research/ho
 | Daily Budget (USD) | Spending guard, `0` disables |
 | Max Proactive Messages Per Day | Default 3 |
 
-4. Create the server and let the installer finish.
+Then create the server and let the installer finish.
 
 ## 3. Start and check
 

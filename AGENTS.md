@@ -31,7 +31,7 @@ Read these before making non-trivial changes:
 
 The authoritative tree lives in [docs/architecture/file-structure.md](docs/architecture/file-structure.md). Summary:
 
-```
+```text
 cmd/kest/          entrypoint only, no logic
 internal/          all application code (not importable by others)
   app/             wiring, lifecycle, dependency injection
@@ -169,7 +169,7 @@ Rules:
 
 Format:
 
-```
+```text
 type(scope): imperative summary in 72 chars or fewer
 
 Optional body explaining why, wrapped at 80 columns.

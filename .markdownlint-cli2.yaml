@@ -5,6 +5,7 @@ config:
     siblings_only: true # allow repeated headings under different parents
   MD033: false # inline HTML is allowed in a few places
   MD036: false # bold lead-ins are used deliberately
+  MD041: false # issue and PR templates start with a level-2 heading
   MD060: false # table column style is not enforced
 ignores:
   - node_modules

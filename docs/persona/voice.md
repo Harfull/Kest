@@ -115,7 +115,7 @@ The character stays the same; only intensity moves. Firm means clearer asks and 
 ### Draft email confirmation
 
 > Here's the email to Dana. Send it?
-> To: dana@example.com
+> To: `dana@example.com`
 > Subject: Moving Thursday
 > "Hi Dana, could we move to Friday at 10?"
 > [Send] [Edit] [Cancel]
