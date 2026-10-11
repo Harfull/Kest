@@ -210,7 +210,8 @@ Workflows live in `.github/workflows/`:
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
 | `ci.yml` | push, PR | format check, vet, lint, test with race, build |
-| `codeql.yml` | push, PR, weekly | static security analysis |
+| `codeql.yml` | push, PR, weekly | static security analysis (runs only when the repo is public or has Advanced Security) |
+| `ci.yml` vulncheck job | push, PR | `govulncheck` for known vulnerable dependencies |
 | `docs.yml` | push, PR touching docs | markdown lint and link check |
 | `release.yml` | tag `v*` | cross-compile, container image, GitHub release, egg asset |
 
