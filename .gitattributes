@@ -1,2 +1,19 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Files that run on Linux (Pterodactyl, Docker, CI) must always use LF
+*.sh text eol=lf
+*.go text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.ogg binary
+*.mp3 binary

@@ -1,0 +1,58 @@
+# Binaries and build output
+/bin/
+/dist/
+/build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/kest
+/kest.exe
+
+# Go tooling
+/vendor/
+coverage.out
+coverage.html
+*.prof
+go.work
+go.work.sum
+
+# Runtime data (never commit user data)
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+config.toml
+!config.example.toml
+secrets.*
+*.pem
+*.key
+credentials.json
+token.json
+
+# Logs
+*.log
+/logs/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/
