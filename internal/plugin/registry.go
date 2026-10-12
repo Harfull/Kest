@@ -211,6 +211,48 @@ func (r *Registry) Hints() []string {
 	return out
 }
 
+// PromptContexts returns what plugins that keep the owner's data want in the
+// system prompt, ordered by plugin ID.
+func (r *Registry) PromptContexts(ctx context.Context) string {
+	var b strings.Builder
+	for _, p := range r.sortedPlugins() {
+		if cp, ok := p.(ContextProvider); ok {
+			b.WriteString(cp.PromptContext(ctx))
+		}
+	}
+	return b.String()
+}
+
+// WeeklyDigests returns the lines plugins add to the weekly review, ordered by
+// plugin ID, skipping empty ones.
+func (r *Registry) WeeklyDigests(ctx context.Context) []string {
+	var out []string
+	for _, p := range r.sortedPlugins() {
+		if d, ok := p.(Digester); ok {
+			if line := strings.TrimSpace(d.WeeklyDigest(ctx)); line != "" {
+				out = append(out, line)
+			}
+		}
+	}
+	return out
+}
+
+// sortedPlugins returns the loaded plugins ordered by ID.
+func (r *Registry) sortedPlugins() []Plugin {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ids := make([]string, 0, len(r.plugins))
+	for id := range r.plugins {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	out := make([]Plugin, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, r.plugins[id].p)
+	}
+	return out
+}
+
 // Lookup finds a tool by the name the model used.
 func (r *Registry) Lookup(wire string) (ToolRef, bool) {
 	r.mu.RLock()
@@ -323,6 +365,7 @@ func (h *host) Notify(ctx context.Context, n Notification) error {
 		return errors.New("no notifier configured")
 	}
 	n.Text = strings.TrimSpace(n.Text)
+	n.Source = h.m.ID
 	if n.Text == "" && len(n.Photo) == 0 {
 		return errors.New("empty notification")
 	}

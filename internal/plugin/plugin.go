@@ -166,6 +166,20 @@ type Prompter interface {
 	PromptHint() string
 }
 
+// ContextProvider is implemented by plugins that keep the owner's own data
+// (workouts, meals, focus sessions) and want the model to know the current
+// state. The text is added to the system prompt each turn, so it must be short
+// and contain only data the owner wrote, never text fetched from outside.
+type ContextProvider interface {
+	PromptContext(ctx context.Context) string
+}
+
+// Digester is implemented by plugins that add a line or two to the coach's
+// weekly review. Lines are plain, kind and factual: counts, never judgments.
+type Digester interface {
+	WeeklyDigest(ctx context.Context) string
+}
+
 // JobProvider is implemented by plugins that schedule work. Each job name is
 // registered with the scheduler as "<plugin id>/<name>".
 type JobProvider interface {

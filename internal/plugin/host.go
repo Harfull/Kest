@@ -47,6 +47,8 @@ type Notification struct {
 	// Urgent bypasses quiet-hour silencing. Use only for things the owner asked
 	// to be told about at a specific time, such as a reminder.
 	Urgent bool
+	// Source is the plugin that sent it. The registry fills it in.
+	Source string
 }
 
 // KV is a small persistent key/value store scoped to one plugin.

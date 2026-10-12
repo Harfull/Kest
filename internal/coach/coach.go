@@ -75,6 +75,9 @@ type Options struct {
 	Loc    *time.Location
 	Log    *slog.Logger
 	Config Config
+	// Digests supplies extra lines for the weekly review, such as a plugin's
+	// counts of workouts. Optional.
+	Digests func(ctx context.Context) []string
 }
 
 // Config holds the coach's defaults. The owner's preferences override them.
@@ -98,6 +101,7 @@ type Coach struct {
 	cfg   Config
 	msgs  *messages.Set
 	prior sleep.Prior
+	extra func(ctx context.Context) []string
 
 	mu sync.Mutex // serializes state changes: ticks, callbacks, tools
 }
@@ -133,7 +137,7 @@ func New(o Options) (*Coach, error) {
 	}
 	return &Coach{
 		db: o.Store, out: o.Out, clock: o.Clock, loc: o.Loc, log: o.Log, cfg: o.Config, msgs: set,
-		prior: sleep.Prior{QuietStart: qs, QuietEnd: qe},
+		prior: sleep.Prior{QuietStart: qs, QuietEnd: qe}, extra: o.Digests,
 	}, nil
 }
 

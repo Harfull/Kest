@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -130,11 +131,11 @@ func TestNotifierStaysQuietInLockdown(t *testing.T) {
 	fake := telegram.NewFake()
 	c := &chat{tr: fake, ownerChat: 1, agent: agent.New(agent.Options{})}
 
-	if err := c.notify(context.Background(), plugin.Notification{Text: "Reminder: stretch"}); err != nil {
+	if err := c.notify(context.Background(), plugin.Notification{Text: "Reminder: stretch", Urgent: true}); err != nil {
 		t.Fatal(err)
 	}
 	c.agent.SetLockdown(true)
-	if err := c.notify(context.Background(), plugin.Notification{Text: "Reminder: drink water"}); err != nil {
+	if err := c.notify(context.Background(), plugin.Notification{Text: "Reminder: drink water", Urgent: true}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -176,5 +177,51 @@ func TestCoachJobIsScheduledOnceAndHiddenFromStatus(t *testing.T) {
 	e.send(telegram.Update{Command: "status"})
 	if got := e.lastText(t, 1); strings.Contains(got, coachJob) {
 		t.Errorf("/status lists the internal tick job:\n%s", got)
+	}
+}
+
+// pingPlugin sends a non-urgent notification when its tool runs, the way a
+// mail plugin would announce a new message.
+type pingPlugin struct{ host *plugin.Host }
+
+var pingManifest = plugin.MustParseManifest(`id = "ping"
+name = "Ping"
+version = "1"
+description = "Sends a nudge for tests."
+[[tools]]
+name = "ping"
+risk = "read"`)
+
+func (p pingPlugin) Manifest() plugin.Manifest { return pingManifest }
+func (p pingPlugin) Init(_ context.Context, h plugin.Host) error {
+	*p.host = h
+	return nil
+}
+func (p pingPlugin) Close(context.Context) error { return nil }
+func (p pingPlugin) Tools() []plugin.Tool {
+	return []plugin.Tool{{
+		Name: "ping", Description: "Send a nudge.", Risk: plugin.RiskRead,
+		Schema: json.RawMessage(`{"type":"object"}`),
+		Handler: func(ctx context.Context, _ plugin.Call) (plugin.Result, error) {
+			err := (*p.host).Notify(ctx, plugin.Notification{Text: "New email from Dana."})
+			return plugin.Result{Content: "pinged"}, err
+		},
+	}}
+}
+
+func TestPluginNudgesGoThroughTheCoachBudget(t *testing.T) {
+	var host plugin.Host
+	e := startWith(t, enable("ping"), WithPlugins(map[string]plugin.Factory{"ping": func() plugin.Plugin { return pingPlugin{&host} }}))
+
+	// 12:00 UTC is outside the default quiet hours, so the first nudge goes out;
+	// a second right after falls inside the minimum gap and is dropped.
+	for range 2 {
+		if err := host.Notify(context.Background(), plugin.Notification{Text: "New email from Dana."}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := e.fake.Snapshot()
+	if len(got) != 1 || got[0].Text != "New email from Dana." {
+		t.Fatalf("sent = %+v", got)
 	}
 }

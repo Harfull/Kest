@@ -427,17 +427,25 @@ func (c *Coach) weeklyFacts(ctx context.Context, now time.Time) (summary, sugges
 		sleepSentence = "Sleep averaged " + hoursText(s.AvgDuration) + "."
 	}
 
+	var digest []string
+	if c.extra != nil {
+		digest = c.extra(ctx)
+	}
+
 	switch {
 	case len(parts) > 0:
 		summary = strings.Join(parts, " ")
-	case sleepSentence == "":
+	case sleepSentence == "" && len(digest) == 0:
 		summary = "There is not much to look at yet, and that is fine."
 	}
-	if sleepSentence != "" {
+	for _, extra := range append([]string{sleepSentence}, digest...) {
+		if extra == "" {
+			continue
+		}
 		if summary != "" {
 			summary += " "
 		}
-		summary += sleepSentence
+		summary += extra
 	}
 
 	if lowestRate < 0.5 {

@@ -159,6 +159,12 @@ func (c *chat) notify(ctx context.Context, n plugin.Notification) error {
 	if len(n.Photo) > 0 {
 		return c.tr.SendPhoto(ctx, c.ownerChat, n.Photo, n.Text)
 	}
+	if !n.Urgent {
+		// A plugin's own idea of something worth saying goes through the same
+		// budget as the daily rhythm: quiet hours, the daily cap and the gap.
+		_, err := c.coach.Nudge(ctx, n.Source, n.Text)
+		return err
+	}
 	_, err := c.tr.Send(ctx, telegram.Reply{ChatID: c.ownerChat, Text: n.Text})
 	return err
 }

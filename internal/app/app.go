@@ -194,6 +194,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	c.coach, err = coach.New(coach.Options{
 		Store: db, Out: coachOutbox{tr: tr, chat: c.ownerChat}, Clock: a.clock, Loc: a.loc, Log: a.log, Config: c.coachConfig(),
+		Digests: reg.WeeklyDigests,
 	})
 	if err != nil {
 		return err
@@ -205,7 +206,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	c.agent = agent.New(agent.Options{
 		Chat: client, Store: db, Tools: reg, Confirm: conf, Clock: a.clock, Loc: a.loc, Log: a.log,
-		Extra: c.coach.Tools(), Context: c.coach.PromptContext,
+		Extra: c.coach.Tools(), Context: func(ctx context.Context) string { return c.coach.PromptContext(ctx) + reg.PromptContexts(ctx) },
 		Progress: c.browserProgress,
 	})
 
