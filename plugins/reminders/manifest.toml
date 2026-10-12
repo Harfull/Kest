@@ -1,0 +1,22 @@
+id          = "reminders"
+name        = "Reminders"
+version     = "0.1.0"
+description = "Set one-off and repeating reminders that Kest sends to the owner at the right time."
+
+[capabilities]
+jobs = true
+
+[config]
+max_active = { type = "int", default = 50 }
+
+[[tools]]
+name = "create_reminder"
+risk = "write"
+
+[[tools]]
+name = "list_reminders"
+risk = "read"
+
+[[tools]]
+name = "cancel_reminder"
+risk = "write"

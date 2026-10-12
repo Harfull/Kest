@@ -29,6 +29,9 @@ jobs:
       - name: Check generated egg is current
         run: make egg-check
 
+      - name: Check generated plugin list is current
+        run: make gen-check
+
       - name: Vet
         run: make vet
 

@@ -198,3 +198,14 @@ func coerce(typ string, v any) (any, error) {
 	}
 	return nil, fmt.Errorf("want %s, got %T", typ, v)
 }
+
+// MustParseManifest parses a manifest embedded in the binary. A malformed
+// embedded manifest is a programming error caught by tests, so it panics; call
+// it only from package-level initialization.
+func MustParseManifest(data string) Manifest {
+	m, err := ParseManifest([]byte(data))
+	if err != nil {
+		panic("invalid embedded manifest: " + err.Error())
+	}
+	return m
+}

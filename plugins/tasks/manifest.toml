@@ -1,0 +1,23 @@
+id          = "tasks"
+name        = "Tasks"
+version     = "0.1.0"
+description = "A simple task list the owner can add to, check off and review by chatting."
+
+[config]
+max_open = { type = "int", default = 200 }
+
+[[tools]]
+name = "add_task"
+risk = "write"
+
+[[tools]]
+name = "list_tasks"
+risk = "read"
+
+[[tools]]
+name = "complete_task"
+risk = "write"
+
+[[tools]]
+name = "delete_task"
+risk = "write"

@@ -28,6 +28,14 @@ fmt: ## Format code
 fmt-check: ## Fail if any file is not formatted
 	@test -z "$$(gofmt -l .)" || (echo "unformatted files:"; gofmt -l .; exit 1)
 
+.PHONY: gen
+gen: ## Regenerate plugins/all from the plugin directories
+	go run ./scripts/genplugins
+
+.PHONY: gen-check
+gen-check: ## Fail if plugins/all is stale
+	go run ./scripts/genplugins -check
+
 .PHONY: egg
 egg: ## Regenerate the Pterodactyl egg from install.sh
 	go run ./scripts/sync-egg
@@ -58,7 +66,7 @@ tidy: ## Tidy go.mod and go.sum
 	go mod tidy
 
 .PHONY: check
-check: fmt-check egg-check vet lint test ## Everything CI runs; run before every commit
+check: fmt-check egg-check gen-check vet lint test ## Everything CI runs; run before every commit
 
 .PHONY: clean
 clean: ## Remove build output

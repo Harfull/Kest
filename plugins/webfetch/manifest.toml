@@ -1,0 +1,16 @@
+id          = "webfetch"
+name        = "Web fetch"
+version     = "0.1.0"
+description = "Fetch a web page and return its readable text. Content is treated as untrusted data."
+
+[capabilities]
+# Any public host. Private, loopback and cloud-metadata addresses are always refused.
+network = ["*"]
+
+[config]
+max_chars  = { type = "int", default = 6000 }
+user_agent = { type = "string", default = "Kest/0.1 (+https://github.com/Harfull/Kest)" }
+
+[[tools]]
+name = "fetch_url"
+risk = "read"
