@@ -1,0 +1,20 @@
+id = "nutrition"
+name = "Nutrition"
+version = "0.1.0"
+description = "Log meals and water without calories, and keep a few eating patterns to build."
+
+[[tools]]
+name = "log_meal"
+risk = "write"
+
+[[tools]]
+name = "log_water"
+risk = "write"
+
+[[tools]]
+name = "nutrition_history"
+risk = "read"
+
+[[tools]]
+name = "set_eating_patterns"
+risk = "write"

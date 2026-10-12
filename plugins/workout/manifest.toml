@@ -1,0 +1,20 @@
+id = "workout"
+name = "Workout"
+version = "0.1.0"
+description = "Log workouts and a weekly target, and report counts."
+
+[[tools]]
+name = "log_workout"
+risk = "write"
+
+[[tools]]
+name = "workout_history"
+risk = "read"
+
+[[tools]]
+name = "set_workout_target"
+risk = "write"
+
+[[tools]]
+name = "delete_workout"
+risk = "write"

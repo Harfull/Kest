@@ -8,23 +8,29 @@ import (
 	"github.com/Harfull/Kest/internal/plugin"
 
 	"github.com/Harfull/Kest/plugins/browser"
+	"github.com/Harfull/Kest/plugins/focus"
 	"github.com/Harfull/Kest/plugins/gmail"
 	"github.com/Harfull/Kest/plugins/mailbox"
 	"github.com/Harfull/Kest/plugins/notion"
+	"github.com/Harfull/Kest/plugins/nutrition"
 	"github.com/Harfull/Kest/plugins/reminders"
 	"github.com/Harfull/Kest/plugins/tasks"
 	"github.com/Harfull/Kest/plugins/webfetch"
+	"github.com/Harfull/Kest/plugins/workout"
 )
 
 // All returns the built-in plugin factories keyed by plugin id.
 func All() map[string]plugin.Factory {
 	return map[string]plugin.Factory{
 		"browser":   browser.New,
+		"focus":     focus.New,
 		"gmail":     gmail.New,
 		"mailbox":   mailbox.New,
 		"notion":    notion.New,
+		"nutrition": nutrition.New,
 		"reminders": reminders.New,
 		"tasks":     tasks.New,
 		"webfetch":  webfetch.New,
+		"workout":   workout.New,
 	}
 }

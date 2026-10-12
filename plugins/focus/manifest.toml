@@ -1,0 +1,31 @@
+id = "focus"
+name = "Focus"
+version = "0.1.0"
+description = "Pick the day's priorities and work in timed focus stretches."
+
+[capabilities]
+jobs = true
+
+[[tools]]
+name = "set_priorities"
+risk = "write"
+
+[[tools]]
+name = "list_priorities"
+risk = "read"
+
+[[tools]]
+name = "complete_priority"
+risk = "write"
+
+[[tools]]
+name = "start_focus"
+risk = "write"
+
+[[tools]]
+name = "stop_focus"
+risk = "write"
+
+[[tools]]
+name = "focus_summary"
+risk = "read"
