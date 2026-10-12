@@ -1,0 +1,40 @@
+id = "notion"
+name = "Notion"
+version = "0.1.0"
+description = "Search, read, create and update pages in a Notion workspace."
+
+[capabilities]
+network = ["api.notion.com"]
+secrets = ["NOTION_TOKEN"]
+
+[config]
+notion_version = { type = "string", default = "2026-03-11" }
+max_chars = { type = "int", default = 6000 }
+
+[[tools]]
+name = "search"
+risk = "read"
+
+[[tools]]
+name = "get_page"
+risk = "read"
+
+[[tools]]
+name = "query_database"
+risk = "read"
+
+[[tools]]
+name = "create_page"
+risk = "write"
+
+[[tools]]
+name = "append_to_page"
+risk = "write"
+
+[[tools]]
+name = "update_page_properties"
+risk = "write"
+
+[[tools]]
+name = "trash_page"
+risk = "destructive"

@@ -10,6 +10,7 @@ import (
 	"github.com/Harfull/Kest/plugins/browser"
 	"github.com/Harfull/Kest/plugins/gmail"
 	"github.com/Harfull/Kest/plugins/mailbox"
+	"github.com/Harfull/Kest/plugins/notion"
 	"github.com/Harfull/Kest/plugins/reminders"
 	"github.com/Harfull/Kest/plugins/tasks"
 	"github.com/Harfull/Kest/plugins/webfetch"
@@ -21,6 +22,7 @@ func All() map[string]plugin.Factory {
 		"browser":   browser.New,
 		"gmail":     gmail.New,
 		"mailbox":   mailbox.New,
+		"notion":    notion.New,
 		"reminders": reminders.New,
 		"tasks":     tasks.New,
 		"webfetch":  webfetch.New,
