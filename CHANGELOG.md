@@ -4,6 +4,10 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-12
+
+First stable release. It adds the coach, the audit log, a secrets file and a tool router on top of the two betas, and picks defaults that exist on OpenRouter today. The Pterodactyl egg was tried on a real panel with beta 1.
+
 ### Changed
 
 - The default general model is now `anthropic/claude-haiku-5.5`. It passed every check in the model evaluation, which now has recorded results for four current cheap models.
