@@ -18,6 +18,17 @@ Unknown keys in `config.toml` are an error, so typos are caught at startup. All 
 
 Prefer environment variables for secrets. Secrets are never printed or logged.
 
+### Where secrets can live
+
+Kest looks for each `KEST_*` variable in this order and uses the first it finds:
+
+1. The real process environment (what Pterodactyl sets).
+2. A `.env` file in the working directory, for running locally.
+3. `<data dir>/secrets.json`, a flat JSON object such as `{"KEST_OPENROUTER_API_KEY": "sk-or-..."}`. Plugin secrets use the same file with their `KEST_SECRET_` names.
+
+On Linux and macOS the secrets file must be mode 0600. Kest refuses to start if group or others can read it, and the error shows the `chmod 600` command to fix it. Windows has no such permission bits, so the check is skipped there.
+
+
 ## General
 
 | Env var | TOML | Default | Meaning |

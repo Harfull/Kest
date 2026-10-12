@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Harfull/Kest/internal/audit"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
@@ -63,7 +64,7 @@ type Store interface {
 	DeleteMemory(ctx context.Context, id int64) error
 	GetProfile(ctx context.Context, key string) (string, error)
 	SetProfile(ctx context.Context, key, value string, now time.Time) error
-	AddAudit(ctx context.Context, e store.AuditEntry) error
+	audit.Store
 }
 
 // Toolbox supplies the tools the model may call. *plugin.Registry satisfies it.
@@ -102,6 +103,7 @@ type Agent struct {
 
 	extraContext func(ctx context.Context) string
 	locked       atomic.Bool
+	audit        *audit.Log
 
 	historyN, maxIter, maxCalls int
 }
@@ -131,6 +133,7 @@ func New(o Options) *Agent {
 		chat: o.Chat, db: o.Store, confirm: o.Confirm, clock: o.Clock, loc: o.Loc, log: o.Log,
 		historyN: o.HistoryN, maxIter: o.MaxIterations, maxCalls: o.MaxToolCalls,
 		extraContext: o.Context,
+		audit:        audit.New(o.Store, o.Clock, o.Log),
 	}
 	core := append(memoryTools{db: o.Store, clock: o.Clock}.refs(), o.Extra...)
 	a.tools = merge(o.Tools, core)
@@ -307,15 +310,14 @@ func (a *Agent) runTool(ctx context.Context, tc llm.ToolCall) (content string, u
 
 	risk, decision, reason := Decide(ref.Tool.Risk, ref.Tool.Outbound, tainted(ctx))
 	if a.locked.Load() && risk != plugin.RiskRead {
+		a.audit.Record(ctx, audit.Entry{Action: full, Risk: risk.String(), Status: audit.StatusDeclined, Summary: "lockdown is on"})
 		return "Error: lockdown is on, so only reading is allowed. Tell the owner this was not done and that it will work again after a restart.", false
 	}
 
-	audit := store.AuditEntry{Actor: "owner", Action: full, Risk: risk.String()}
+	entry := audit.Entry{Action: full, Risk: risk.String()}
 	finish := func(status, summary string) {
-		audit.TS, audit.Status, audit.Summary = a.clock.Now(), status, summary
-		if err := a.db.AddAudit(ctx, audit); err != nil {
-			a.log.WarnContext(ctx, "audit tool call", "tool", full, "err", err)
-		}
+		entry.Status, entry.Summary = status, summary
+		a.audit.Record(ctx, entry)
 	}
 
 	if decision == Confirm {
@@ -328,26 +330,26 @@ func (a *Agent) runTool(ctx context.Context, tc llm.ToolCall) (content string, u
 		})
 		if err != nil {
 			a.log.WarnContext(ctx, "confirmation failed", "tool", full, "err", err)
-			finish("error", "confirmation failed")
+			finish(audit.StatusError, "confirmation failed")
 			return "Error: I couldn't ask the owner to confirm this, so it was not done.", false
 		}
 		if !approved {
-			finish("declined", "owner declined or did not answer")
+			finish(audit.StatusDeclined, "owner declined or did not answer")
 			return "The owner did not approve this action, so it was not done. Do not try it again; tell the owner it was skipped.", false
 		}
-		audit.Confirmed = true
+		entry.Confirmed = true
 	}
 
 	tctx, cancel := context.WithTimeout(ctx, toolTimeout)
 	defer cancel()
 	res, err := a.safeHandler(tctx, ref, plugin.Call{ID: tc.ID, Args: args})
 	if err != nil {
-		finish("error", "tool failed")
+		finish(audit.StatusError, "tool failed")
 		a.log.WarnContext(ctx, "tool failed", "tool", full, "err", err)
 		return "Error: " + Sanitize(err.Error(), 300), false
 	}
 
-	finish("ok", res.Summary)
+	finish(audit.StatusOK, res.Summary)
 	if res.Untrusted {
 		return Wrap(full, res.Content), true
 	}

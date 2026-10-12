@@ -13,6 +13,7 @@ const (
 		"/settings  how often and when I check in\n" +
 		"/export    get a copy of your data\n" +
 		"/forget    delete our conversation history\n" +
+		"/audit     what I have done on your behalf lately\n" +
 		"/lockdown  stop writing and unprompted messages until restart\n" +
 		"/help      this list\n\n" +
 		"I can also set reminders, keep a task list, read a web page for you and remember things about you. Just ask."
@@ -43,6 +44,8 @@ const (
 	msgLockdown = "Lockdown is on. Until I restart I will only read: nothing gets written, deleted or sent, and I will not message you unprompted. " +
 		"If you think your accounts are at risk, rotate the Telegram token and the OpenRouter key too."
 
+	msgAuditEmpty = "Nothing yet. When I run a tool for you, it shows up here."
+
 	msgGenericFail = "Something went wrong on my side. Please try again."
 )
 
@@ -52,6 +55,7 @@ var commandMenu = []telegram.Command{
 	{Name: "settings", Description: "How often and when I check in"},
 	{Name: "export", Description: "Get a copy of your data"},
 	{Name: "forget", Description: "Delete our conversation history"},
+	{Name: "audit", Description: "What I have done for you lately"},
 	{Name: "lockdown", Description: "Stop writing and unprompted messages"},
 	{Name: "help", Description: "What I can do"},
 }

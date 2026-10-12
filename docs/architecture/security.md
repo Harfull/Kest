@@ -51,7 +51,7 @@ Confirmations wait two minutes by default and fail closed: no answer, a late pre
 
 ### Secrets
 
-- Loaded from environment or `data/secrets.json` with mode 0600; Kest refuses to start if the file is group or world readable.
+- Loaded from the environment, a local `.env`, or `data/secrets.json` (in that order of precedence). The JSON file must be mode 0600, and Kest refuses to start if it is group or world readable.
 - Never written to logs, prompts, audit entries or error messages. A redacting `slog` handler masks known secret values and common token shapes.
 
 ### Network
@@ -76,7 +76,7 @@ Confirmations wait two minutes by default and fail closed: no answer, a late pre
 ## Logging
 
 - Default level `info`. Message bodies, emails and tokens are redacted unless `log_level=debug` **and** `log_sensitive=true`.
-- Audit entries record what happened, not the content.
+- Audit entries record what happened, not the content. They are written through `internal/audit`, which strips control characters, masks token shapes, emails and configured secrets, and caps summaries at 200 characters. `/audit` shows the owner the latest entries.
 
 ## Supply chain
 

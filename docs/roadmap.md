@@ -29,7 +29,7 @@ Kest answers in Telegram, owner-only, with real persistence.
 - ✅ Commands: `/start`, `/help`, `/status`, `/export`, `/forget` (with an expiring confirmation)
 - ✅ Nightly maintenance job: backup (last 7 kept) and pruning of old messages
 - ✅ `/settings` (shows check-ins and quiet hours; changes are made by asking) and `/lockdown`
-- ⬜ `secrets` file (mode 0600) and an `audit` package around the audit table
+- ✅ `secrets.json` in the data dir (mode 0600 enforced) and an `audit` package around the audit table, with `/audit`
 - ⬜ Egg verified on a real panel; release v0.1.0
 
 Exit criteria: send a text or voice note and get a text or voice reply; restart without losing scheduled reminders. The code paths are covered by automated tests against fake Telegram and OpenRouter servers; a live end-to-end run with a real bot token is still to be done by the owner.

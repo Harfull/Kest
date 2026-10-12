@@ -169,3 +169,27 @@ func (d *DB) AddAudit(ctx context.Context, e AuditEntry) error {
 	}
 	return nil
 }
+
+// RecentAudit returns up to n audit entries, newest first.
+func (d *DB) RecentAudit(ctx context.Context, n int) ([]AuditEntry, error) {
+	rows, err := d.r.QueryContext(ctx, `
+		SELECT ts, actor, action, risk, confirmed, status, summary
+		FROM audit_log ORDER BY id DESC LIMIT ?`, n)
+	if err != nil {
+		return nil, fmt.Errorf("query audit log: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck // read-only rows; error surfaces via rows.Err
+
+	var out []AuditEntry
+	for rows.Next() {
+		var e AuditEntry
+		var ts int64
+		var confirmed int
+		if err := rows.Scan(&ts, &e.Actor, &e.Action, &e.Risk, &confirmed, &e.Status, &e.Summary); err != nil {
+			return nil, fmt.Errorf("scan audit entry: %w", err)
+		}
+		e.TS, e.Confirmed = fromMS(ts), confirmed != 0
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}

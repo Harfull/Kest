@@ -43,6 +43,12 @@ func run() error {
 		return err
 	}
 
+	// Secrets in the data directory come last: environment, then .env, then the file.
+	lookup, err = config.WithSecretsFile(config.SecretsPath(lookup), lookup)
+	if err != nil {
+		return err
+	}
+
 	path := *configPath
 	if path == "" {
 		path = config.Path(lookup)

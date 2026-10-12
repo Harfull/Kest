@@ -10,6 +10,8 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- `/audit` shows what Kest has done on your behalf. Entries are written by a new `audit` package that scrubs secrets, emails and control characters and keeps summaries short. Refused lockdown actions are recorded too.
+- A `secrets.json` file in the data directory, as the last place Kest looks for `KEST_*` values. On Linux and macOS it must be mode 0600 or Kest refuses to start.
 - A `.env` file in the working directory is read for local runs. Real environment variables still win.
 - The coach: habits with if-then plans and a tiny version, rolling consistency instead of streaks, a gentle lapse protocol, and a daily rhythm of morning check-in, habit prompts, evening log and a Sunday review, with an opt-in wind-down.
 - A notification budget: a daily cap, cooldowns, no messages in quiet hours, and a back-off ladder that asks "message less?" when messages go unanswered.

@@ -29,13 +29,14 @@ Kest/
 │   ├── version/                      Version and Commit set via -ldflags
 │   ├── clock/                        Clock interface, real and fake clocks
 │   ├── logging/                      slog setup and redaction handler
-│   ├── config/                       defaults, TOML + env loading, validation
-│   ├── secrets/                      0600 secrets file, token store         (P1)
-│   ├── audit/                        audit log writer                       (P1)
+│   ├── config/                       defaults, TOML, env, .env and secrets.json loading, validation
+│   ├── audit/                        audit log: scrubbed, short, never content
 │   │
 │   ├── app/                          wiring and lifecycle
 │   │   ├── app.go                    Run(ctx): build graph, start, wait, stop
 │   │   ├── chat.go                   commands, text and voice turns, confirmations
+│   │   ├── coach.go                  coach wiring: tick job, outbox, buttons, /settings, /lockdown
+│   │   ├── audit.go                  /audit
 │   │   ├── maintenance.go            nightly backup and pruning
 │   │   └── messages.go               user-facing strings
 │   │

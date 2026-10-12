@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Harfull/Kest/internal/agent"
+	"github.com/Harfull/Kest/internal/audit"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/coach"
 	"github.com/Harfull/Kest/internal/config"
@@ -165,6 +166,7 @@ func (a *App) Run(ctx context.Context) error {
 		started:   a.clock.Now(),
 		ownerChat: a.cfg.Telegram.OwnerIDs[0],
 		queue:     make(chan func(context.Context), queueSize),
+		audit:     audit.New(db, a.clock, a.log, a.cfg.Telegram.Token.Reveal(), a.cfg.LLM.APIKey.Reveal()),
 	}
 
 	conf := agent.NewConfirmations(db, a.clock, a.approval)

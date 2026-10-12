@@ -11,6 +11,7 @@ import (
 
 	"github.com/Harfull/Kest/internal/agent"
 	"github.com/Harfull/Kest/internal/audio"
+	"github.com/Harfull/Kest/internal/audit"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/coach"
 	"github.com/Harfull/Kest/internal/config"
@@ -52,6 +53,7 @@ type chat struct {
 	ownerChat int64 // where approvals and plugin notifications go
 	confirm   *agent.Confirmations
 	coach     *coach.Coach
+	audit     *audit.Log
 	registry  *plugin.Registry
 
 	// queue serializes conversation turns so history stays in order, while
@@ -228,6 +230,8 @@ func (c *chat) command(ctx context.Context, u telegram.Update) {
 		c.forgetAsk(ctx, u.ChatID)
 	case "settings":
 		c.settings(ctx, u.ChatID)
+	case "audit":
+		c.auditList(ctx, u.ChatID)
 	case "lockdown":
 		c.lockdown(ctx, u.ChatID)
 	default:
@@ -351,12 +355,9 @@ func (c *chat) callback(ctx context.Context, u telegram.Update) {
 		c.say(ctx, u.ChatID, msgGenericFail)
 		return
 	}
-	if err := c.db.AddAudit(ctx, store.AuditEntry{
-		TS: c.clock.Now(), Actor: "owner", Action: "forget", Risk: "destructive", Confirmed: true, Status: "ok",
-		Summary: "deleted conversation history and preferences",
-	}); err != nil {
-		c.log.WarnContext(ctx, "audit forget", "err", err)
-	}
+	c.audit.Record(ctx, audit.Entry{
+		Action: "forget", Risk: "destructive", Confirmed: true, Summary: "deleted conversation history and preferences",
+	})
 	ack("Deleted")
 	c.say(ctx, u.ChatID, msgForgetDone)
 }
