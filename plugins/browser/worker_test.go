@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -77,5 +78,26 @@ func TestCanceledExchangeReapsWorker(t *testing.T) {
 	case <-w.done:
 	default:
 		t.Fatal("canceled worker still running")
+	}
+}
+
+func TestMissingPlaywrightIsExplainedAndFatal(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("Node is not installed")
+	}
+	dir := t.TempDir()
+	cfg, err := New().Manifest().ResolveConfig(map[string]any{"module_path": filepath.Join(dir, "missing")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := startWorker(cfg, dir, &proxy{url: "http://127.0.0.1:1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(w.stop)
+	_, err = w.call(context.Background(), "list_tabs", workerArgs{})
+	var refused *actionError
+	if !errors.As(err, &refused) || !refused.fatal || !strings.Contains(err.Error(), "Playwright could not be loaded") {
+		t.Fatalf("error = %v", err)
 	}
 }

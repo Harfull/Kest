@@ -17,7 +17,11 @@ import (
 
 // actionError is a failure the worker reported for one action, such as a ref
 // that no longer exists. The browser itself is fine, so it keeps running.
-type actionError struct{ msg string }
+type actionError struct {
+	msg string
+	// fatal means the worker cannot continue and must be replaced.
+	fatal bool
+}
 
 func (e *actionError) Error() string { return e.msg }
 
@@ -87,6 +91,7 @@ func (w *worker) call(ctx context.Context, action string, args workerArgs) (stri
 	type response struct {
 		Content string `json:"content"`
 		Error   string `json:"error"`
+		Fatal   bool   `json:"fatal"`
 	}
 	type outcome struct {
 		content string
@@ -115,7 +120,7 @@ func (w *worker) call(ctx context.Context, action string, args workerArgs) (stri
 			return
 		}
 		if res.Error != "" {
-			result.err = &actionError{msg: res.Error}
+			result.err = &actionError{msg: res.Error, fatal: res.Fatal}
 			return
 		}
 		result.content = res.Content

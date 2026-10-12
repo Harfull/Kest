@@ -494,10 +494,17 @@ async function main() {
   lines.on('line', line => {
     queue = queue.then(async () => {
       if (!configured) {
-        const config = JSON.parse(line);
-        const { chromium } = require(config.module);
-        session = makeSession(config, chromium);
-        configured = true;
+        try {
+          const config = JSON.parse(line);
+          const { chromium } = require(config.module);
+          session = makeSession(config, chromium);
+          configured = true;
+        } catch {
+          // The next line is an action, not a retry of the configuration, so
+          // answer it with the reason and stop; the plugin starts a fresh worker.
+          process.stdout.write(JSON.stringify({ error: 'Playwright could not be loaded. Check KEST_BROWSER_MODULE_PATH and that Playwright is installed there.', fatal: true }) + '\n');
+          setImmediate(() => process.exit(1));
+        }
         return;
       }
       try {

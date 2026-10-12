@@ -168,7 +168,7 @@ func (p *Plugin) run(ctx context.Context, action string, call plugin.Call) (plug
 	content, err := p.worker.call(ctx, action, wa)
 	if err != nil {
 		var refused *actionError
-		if !errors.As(err, &refused) {
+		if !errors.As(err, &refused) || refused.fatal {
 			p.stop() // A timed-out action must not keep acting after approval expires.
 		}
 		return plugin.Result{}, err
