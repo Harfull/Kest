@@ -142,7 +142,7 @@ func (a *App) Run(ctx context.Context) error {
 		clock:   a.clock,
 		loc:     a.loc,
 		tr:      tr,
-		agent:   agent.New(client, db, a.clock, a.loc, 0),
+		agent:   agent.New(agent.Options{Chat: client, Store: db, Clock: a.clock, Loc: a.loc, Log: a.log}),
 		llm:     client,
 		db:      db,
 		sched:   sch,

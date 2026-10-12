@@ -25,10 +25,10 @@ const (
 
 	msgUnknownCommand = "I don't know that one. /help lists what I can do."
 
-	msgForgetAsk = "This deletes our conversation history and your saved preferences. Scheduled jobs and cost records stay. " +
+	msgForgetAsk = "This deletes our conversation history, what I remember about you, and your saved preferences. Your tasks, scheduled jobs and cost records stay. " +
 		"It can't be undone. Go ahead?"
 
-	msgForgetDone = "Done. Our conversation history and preferences are deleted."
+	msgForgetDone = "Done. Our conversation history, my notes about you and your preferences are deleted."
 
 	msgForgetCancel = "Okay, nothing was deleted."
 
