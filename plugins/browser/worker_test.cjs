@@ -8,6 +8,7 @@ const { publicURL, inboxFile, launchError } = require('./worker.cjs');
 test('launch diagnostics identify runtime failures without exposing raw values', () => {
   for (const [input, expected] of [
     ['No usable sandbox! secret-token', 'sandbox is unavailable'],
+    ['Check failed: sys_chroot("/proc/self/fdinfo/") == 0 secret-token', 'sandbox is unavailable'],
     ['Failed to move to new namespace: Operation not permitted secret-token', 'sandbox is unavailable'],
     ["Executable doesn't exist: /private/secret-token", 'executable is missing'],
     ['error while loading shared libraries: secret-token', 'system libraries are missing'],

@@ -6,6 +6,8 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Recognize Calagopus's blocked Chromium `sys_chroot` operation as a sandbox launch failure and document the host-policy requirement and explicit administrator override.
+
 - Report safe, specific Chromium launch errors for sandbox, missing browser/libraries, display, profile-lock and permission problems, rather than hiding them behind a generic tool error.
 
 - Use a plain Docker image reference in the browser egg, avoiding `invalid reference format` when a daemon does not process Wings' special local-image prefix.

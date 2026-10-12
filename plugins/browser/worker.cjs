@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 
 function launchError(error) {
   const message = typeof error?.message === 'string' ? error.message : '';
-  if (/No usable sandbox|Failed to move to new namespace|Running as root without --no-sandbox|namespace.*Operation not permitted|zygote_host_impl_linux.*Operation not permitted/i.test(message))
+  if (/No usable sandbox|sys_chroot|Failed to move to new namespace|Running as root without --no-sandbox|namespace.*Operation not permitted|zygote_host_impl_linux.*Operation not permitted/i.test(message))
     return 'Chromium sandbox is unavailable. Check the node seccomp, AppArmor and user namespace settings.';
   if (/Executable doesn.t exist|executable.*ENOENT/i.test(message))
     return 'Chromium executable is missing. Install the browser matching the pinned Playwright version.';

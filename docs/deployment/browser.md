@@ -125,6 +125,7 @@ JS
 | Could not locate Node | Use the browser runtime image or install Node and set `node_path` |
 | Runtime unavailable | Install the locked module and matching Chromium; check `KEST_BROWSER_MODULE_PATH` |
 | Chromium cannot launch on Wings | Ask the node administrator to check user namespaces, seccomp and AppArmor; use a compatible standalone host if unavailable |
+| Calagopus reports `sys_chroot("/proc/self/fdinfo/") == 0` | Chromium's sandbox cannot perform its chroot operation under the container policy. Calagopus's default seccomp profile conditions chroot on `SYS_CHROOT`, which its server containers drop. Keep sandboxing with a compatible custom daemon policy or the standalone Compose profile. An explicit reduced-isolation workaround is setting the server's `KEST_BROWSER_SANDBOX=false` and restarting; this disables Chromium's own sandbox and requires no image rebuild |
 | Private/internal URL refused | Expected: loopback, LAN, metadata and non-web ports are blocked |
 | Click fails | Read the page first and choose an exact visible locator; iframes may require a frame-specific workflow that this version does not expose |
 | Login disappears | Check volume mounting and stop gracefully; session-only cookies can expire by site policy |
