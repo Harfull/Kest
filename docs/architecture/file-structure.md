@@ -28,22 +28,24 @@ Kest/
 ├── internal/
 │   ├── version/                      Version and Commit set via -ldflags
 │   ├── clock/                        Clock interface, real and fake clocks
-│   ├── logging/                      slog setup (redaction handler arrives in P1)
+│   ├── logging/                      slog setup and redaction handler
 │   ├── config/                       defaults, TOML + env loading, validation
 │   ├── secrets/                      0600 secrets file, token store         (P1)
 │   ├── audit/                        audit log writer                       (P1)
 │   │
 │   ├── app/                          wiring and lifecycle
-│   │   ├── app.go                    Run(ctx, cfg): build graph, start, wait, stop
-│   │   └── lifecycle.go              ordered start/stop, errgroup           (P1)
+│   │   ├── app.go                    Run(ctx): build graph, start, wait, stop
+│   │   ├── chat.go                   commands, text and voice turns, confirmations
+│   │   ├── maintenance.go            nightly backup and pruning
+│   │   └── messages.go               user-facing strings
 │   │
-│   ├── store/                        SQLite                                 (P1)
+│   ├── store/                        SQLite
 │   │   ├── sqlite.go                 open, pragmas, verification, pools
 │   │   ├── migrate.go                embedded migration runner
 │   │   ├── migrations/               0001_init.sql, 0002_...
 │   │   └── *_repo.go                 one repository per aggregate
 │   │
-│   ├── telegram/                     transport adapter                      (P1)
+│   ├── telegram/                     transport adapter
 │   │   ├── transport.go              interfaces: Inbox, Outbox, Update, Reply
 │   │   ├── bot.go                    go-telegram/bot implementation
 │   │   ├── ownerguard.go             drop non-owner updates
@@ -52,7 +54,7 @@ Kest/
 │   │   ├── voice.go                  voice download, sendVoice
 │   │   └── fake.go                   in-memory transport for tests
 │   │
-│   ├── llm/                          OpenRouter                             (P1)
+│   ├── llm/                          OpenRouter
 │   │   ├── client.go                 HTTP client, auth, headers, retry
 │   │   ├── chat.go                   chat completions, streaming
 │   │   ├── tools.go                  tool schema mapping and call parsing
@@ -61,7 +63,7 @@ Kest/
 │   │   ├── usage.go                  cost accounting, budget guard
 │   │   └── fake.go                   scripted model for tests
 │   │
-│   ├── agent/                        conversation engine                    (P2)
+│   ├── agent/                        conversation engine (basic chat now; tools in P2)
 │   │   ├── agent.go                  turn loop with iteration cap
 │   │   ├── prompt.go                 system prompt assembly
 │   │   ├── untrusted.go              data-block wrapping for external content
@@ -69,7 +71,7 @@ Kest/
 │   │   ├── policy.go                 risk tiers and capability checks
 │   │   └── memory/                   facts, summaries, retrieval, provenance
 │   │
-│   ├── scheduler/                    persistent jobs                        (P1)
+│   ├── scheduler/                    persistent jobs
 │   │   ├── scheduler.go              loop, claiming, workers
 │   │   ├── job.go                    job model and states
 │   │   ├── recurrence.go             daily, weekdays, weekly, every, cron

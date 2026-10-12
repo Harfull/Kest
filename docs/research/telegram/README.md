@@ -64,7 +64,14 @@ Evidence for the comparison is mostly secondary. The deciding factors are zero d
 - Format output with HTML parse mode through a tested escaper; split messages at 4096 characters on paragraph boundaries.
 - Send TTS replies as MP3 via `sendVoice`.
 - Download voice notes (under 20 MB) and pass the OGG bytes straight to transcription.
-- Keep inline-button payloads in the store; callback data holds only an ID.
+- Keep inline-button payloads in the store; callback data holds only an ID. (Phase 1 shortcut: the `/forget` buttons carry a signed-free timestamp in their data so they expire without storage; anything that triggers a tool call will use stored `pending_actions` instead.)
+
+### Implementation notes (go-telegram/bot v1.27)
+
+- The library sends every request as `multipart/form-data`, so fake servers in tests must parse multipart, not JSON.
+- Handlers run in goroutines by default, which can reorder updates. Kest sets `WithNotAsyncHandlers()` with the default single worker so updates arrive in order, and its handler returns quickly by queueing slow work.
+- `WithServerURL` lets the adapter be tested end to end against a fake Bot API server.
+- Transport errors from `net/http` embed the request URL, which contains the bot token. The adapter strips them, and the log redactor masks the token as a second layer.
 
 ## Open questions
 

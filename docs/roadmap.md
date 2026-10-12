@@ -15,21 +15,24 @@ Repository, conventions, research, architecture, hosting artifacts.
 - ✅ Pterodactyl egg, install script, Docker image
 - ✅ Go skeleton: `cmd/kest`, config loading, clock, version, app lifecycle
 
-## Phase 1: Talking ⬜
+## Phase 1: Talking 🚧
 
 Kest answers in Telegram, owner-only, with real persistence.
 
-- ⬜ `store`: SQLite open, pragma verification, migrations, repositories
-- ⬜ `logging` with redaction, `secrets` file, `audit`
-- ⬜ `telegram`: long polling, owner guard, HTML formatting and splitting, inline keyboards
-- ⬜ `llm`: OpenRouter chat, retries, fallbacks, usage and budget
-- ⬜ Voice in: download voice note, transcribe
-- ⬜ Voice out: TTS to MP3, `sendVoice`
-- ⬜ `scheduler`: persistent jobs, recurrence, DST tests, misfire policy
-- ⬜ Commands: `/start`, `/help`, `/status`, `/settings`, `/export`, `/forget`
+- ✅ `store`: SQLite open, verified pragmas, migrations, repositories, export and forget, backups
+- ✅ `logging` with redaction of secrets, token shapes, emails and message content
+- ✅ `telegram`: long polling, owner guard, HTML formatting and splitting, inline buttons, documents
+- ✅ `llm`: OpenRouter chat with tool-call types, retries, fallbacks, usage and daily budget
+- ✅ Voice in: download voice note, transcribe
+- ✅ Voice out: TTS to MP3, `sendVoice`, falling back to text
+- ✅ `scheduler`: persistent jobs, recurrence, DST tests, misfire policy
+- ✅ Commands: `/start`, `/help`, `/status`, `/export`, `/forget` (with an expiring confirmation)
+- ✅ Nightly maintenance job: backup (last 7 kept) and pruning of old messages
+- ⬜ `/settings` (tone, volume, quiet hours) and `/lockdown`
+- ⬜ `secrets` file (mode 0600) and an `audit` package around the audit table
 - ⬜ Egg verified on a real panel; release v0.1.0
 
-Exit criteria: send a text or voice note and get a text or voice reply; restart without losing scheduled reminders.
+Exit criteria: send a text or voice note and get a text or voice reply; restart without losing scheduled reminders. The code paths are covered by automated tests against fake Telegram and OpenRouter servers; a live end-to-end run with a real bot token is still to be done by the owner.
 
 ## Phase 2: Tools ⬜
 

@@ -4,7 +4,7 @@ A personal assistant that helps you stay consistent.
 
 Kest lives in Telegram. It keeps track of your workouts, meals, sleep and focus, checks in at the right moments, and talks to you like a steady friend: warm, direct, never preachy. Behind the chat it can read and send email, work with Notion, and connect to hundreds of other tools through a plugin system.
 
-> Status: early development. The design, research and repository foundation are in place; features land in phases. See the [roadmap](docs/roadmap.md).
+> Status: early development. Phase 1 is largely built: Kest answers text and voice notes in Telegram (owner-only), keeps history in SQLite, runs a persistent scheduler and ships with a Pterodactyl egg. Habit coaching and integrations come next. See the [roadmap](docs/roadmap.md).
 
 ## What makes Kest different
 

@@ -22,15 +22,16 @@ data/
 
 Stop Kest before copying `kest.db` by hand, or use the backups folder. Layout is defined in [../architecture/data-model.md](../architecture/data-model.md).
 
-## Chat commands (arrive in Phase 1)
+## Chat commands
 
 | Command | Purpose |
 | --- | --- |
-| `/status` | Health, spend today, next scheduled jobs, plugin state |
-| `/settings` | Tone, message volume, check-in times, quiet hours |
-| `/export` | Export all your data as JSON |
-| `/forget` | Delete all your data, after confirmation |
-| `/lockdown` | Disable write tools and proactive messages until restart |
+| `/status` | Version, uptime, spend today against the budget, next scheduled jobs |
+| `/export` | Send your preferences, history and model usage as a JSON file |
+| `/forget` | Delete conversation history and preferences, after a button confirmation that expires in 10 minutes |
+| `/help` | List of commands |
+
+`/settings` and `/lockdown` are planned; see the roadmap.
 
 ## Rotating credentials
 
