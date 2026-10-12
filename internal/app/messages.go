@@ -9,10 +9,12 @@ const (
 		"Send me a message or a voice note any time. Send /help to see what I can do."
 
 	msgHelp = "You can talk to me by text or voice. I reply in the same way you wrote.\n\n" +
-		"/status  how I'm doing and what's scheduled\n" +
-		"/export  get a copy of your data\n" +
-		"/forget  delete our conversation history\n" +
-		"/help    this list\n\n" +
+		"/status    how I'm doing and what's scheduled\n" +
+		"/settings  how often and when I check in\n" +
+		"/export    get a copy of your data\n" +
+		"/forget    delete our conversation history\n" +
+		"/lockdown  stop writing and unprompted messages until restart\n" +
+		"/help      this list\n\n" +
 		"I can also set reminders, keep a task list, read a web page for you and remember things about you. Just ask."
 
 	msgModelDown = "I couldn't reach my language model just now. Try again in a minute; your message is saved."
@@ -38,13 +40,18 @@ const (
 
 	msgApprovalTimedOut = "I did not hear back, so I skipped that. Ask again if you still want it."
 
+	msgLockdown = "Lockdown is on. Until I restart I will only read: nothing gets written, deleted or sent, and I will not message you unprompted. " +
+		"If you think your accounts are at risk, rotate the Telegram token and the OpenRouter key too."
+
 	msgGenericFail = "Something went wrong on my side. Please try again."
 )
 
 // commandMenu is registered with Telegram so commands appear in the app.
 var commandMenu = []telegram.Command{
 	{Name: "status", Description: "How I'm doing and what's scheduled"},
+	{Name: "settings", Description: "How often and when I check in"},
 	{Name: "export", Description: "Get a copy of your data"},
 	{Name: "forget", Description: "Delete our conversation history"},
+	{Name: "lockdown", Description: "Stop writing and unprompted messages"},
 	{Name: "help", Description: "What I can do"},
 }

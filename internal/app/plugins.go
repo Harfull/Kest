@@ -145,6 +145,9 @@ func (c *chat) settled(ctx context.Context, msgID int, outcome string) {
 
 // notify sends a plugin notification to the owner.
 func (c *chat) notify(ctx context.Context, n plugin.Notification) error {
+	if c.agent.Locked() {
+		return nil // lockdown silences unprompted messages
+	}
 	_, err := c.tr.Send(ctx, telegram.Reply{ChatID: c.ownerChat, Text: n.Text})
 	return err
 }

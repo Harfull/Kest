@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/Harfull/Kest/internal/agent"
 	"github.com/Harfull/Kest/internal/audio"
 	"github.com/Harfull/Kest/internal/clock"
+	"github.com/Harfull/Kest/internal/coach"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
@@ -49,6 +51,7 @@ type chat struct {
 
 	ownerChat int64 // where approvals and plugin notifications go
 	confirm   *agent.Confirmations
+	coach     *coach.Coach
 	registry  *plugin.Registry
 
 	// queue serializes conversation turns so history stays in order, while
@@ -58,6 +61,7 @@ type chat struct {
 
 // handle is the telegram.Handler. It must return quickly.
 func (c *chat) handle(ctx context.Context, u telegram.Update) {
+	c.noteOwner(ctx)
 	switch {
 	case u.Callback != nil:
 		c.callback(ctx, u)
@@ -114,6 +118,8 @@ func (c *chat) textTurn(ctx context.Context, chatID int64, text string, viaVoice
 	if err := c.tr.Typing(ctx, chatID, false); err != nil {
 		c.log.DebugContext(ctx, "typing indicator failed", "err", err)
 	}
+
+	c.coach.NoteMessage(ctx, text, c.clock.Now())
 
 	reply, err := c.agent.Reply(ctx, text)
 	if err != nil {
@@ -220,6 +226,10 @@ func (c *chat) command(ctx context.Context, u telegram.Update) {
 		c.export(ctx, u.ChatID)
 	case "forget":
 		c.forgetAsk(ctx, u.ChatID)
+	case "settings":
+		c.settings(ctx, u.ChatID)
+	case "lockdown":
+		c.lockdown(ctx, u.ChatID)
 	default:
 		c.say(ctx, u.ChatID, msgUnknownCommand)
 	}
@@ -241,7 +251,9 @@ func (c *chat) status(ctx context.Context, chatID int64) {
 
 	fmt.Fprintf(&b, "Model: %s\n", c.cfg.LLM.Models.General)
 
-	jobs, err := c.sched.Upcoming(ctx, 3)
+	jobs, err := c.sched.Upcoming(ctx, 10)
+	jobs = slices.DeleteFunc(jobs, func(j scheduler.Job) bool { return j.Name == coachJob }) // it runs every five minutes and would crowd out everything else
+	jobs = jobs[:min(len(jobs), 3)]
 	switch {
 	case err != nil:
 		b.WriteString("Scheduled: unavailable.\n")
@@ -307,6 +319,10 @@ func (c *chat) callback(ctx context.Context, u telegram.Update) {
 
 	if id, approve, ok := agent.ParseDecision(cb.Data); ok {
 		c.decide(ctx, ack, id, approve)
+		return
+	}
+
+	if c.coachCallback(ctx, u, ack) {
 		return
 	}
 

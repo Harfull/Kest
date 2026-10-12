@@ -17,6 +17,7 @@ import (
 
 	"github.com/Harfull/Kest/internal/agent"
 	"github.com/Harfull/Kest/internal/clock"
+	"github.com/Harfull/Kest/internal/coach"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
@@ -187,12 +188,21 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 	c.registry = reg
 
+	c.coach, err = coach.New(coach.Options{
+		Store: db, Out: coachOutbox{tr: tr, chat: c.ownerChat}, Clock: a.clock, Loc: a.loc, Log: a.log, Config: c.coachConfig(),
+	})
+	if err != nil {
+		return err
+	}
+
 	c.agent = agent.New(agent.Options{
 		Chat: client, Store: db, Tools: reg, Confirm: conf, Clock: a.clock, Loc: a.loc, Log: a.log,
+		Extra: c.coach.Tools(), Context: c.coach.PromptContext,
 	})
 
 	m := &maintenance{db: db, dir: a.cfg.DataDir, clock: a.clock, log: a.log, summarize: c.agent.Summarize}
 	sch.Register(maintenanceJob, m.run)
+	sch.Register(coachJob, c.coachTick)
 	for name, fn := range reg.JobHandlers() {
 		sch.Register(name, func(ctx context.Context, j scheduler.Job) error { return fn(ctx, j.Payload) })
 	}
@@ -204,6 +214,10 @@ func (a *App) Run(ctx context.Context) error {
 		Misfire: scheduler.MisfireSkip,
 	}); err != nil {
 		return fmt.Errorf("schedule maintenance: %w", err)
+	}
+
+	if err := ensureCoachJob(ctx, sch, a.cfg.Timezone); err != nil {
+		return err
 	}
 
 	if err := tr.SetCommands(ctx, commandMenu); err != nil {
