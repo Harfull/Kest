@@ -67,4 +67,21 @@ Most behavior (tone, volume, check-in times) is changed by chatting with Kest or
 
 ## Plugins
 
-Plugin settings live under `[plugins.<id>]` in `config.toml`, and MCP servers under `[[mcp.servers]]`. These sections arrive with the plugin framework in Phase 2; the format is specified in [../architecture/plugins.md](../architecture/plugins.md).
+| Env var | TOML | Default | Meaning |
+| --- | --- | --- | --- |
+| `KEST_PLUGINS` | `enabled_plugins` | `reminders,tasks,webfetch` | Built-in plugins to load, by id |
+| `KEST_SECRET_<NAME>` | none | none | A secret a plugin declared in its manifest, for example `KEST_SECRET_NOTION_TOKEN` |
+
+Per-plugin settings live under `[plugins.<id>]` and are checked against the plugin's manifest; unknown or wrongly typed settings disable that plugin and are reported by `/status`:
+
+```toml
+enabled_plugins = ["reminders", "tasks", "webfetch"]
+
+[plugins.reminders]
+max_active = 50
+
+[plugins.webfetch]
+max_chars = 6000
+```
+
+Each plugin's README lists its settings. Settings for a plugin that is not enabled are a configuration error. Format details: [../architecture/plugins.md](../architecture/plugins.md).

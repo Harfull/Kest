@@ -11,8 +11,6 @@ SQLite in WAL mode via `modernc.org/sqlite`. One database file, `data/kest.db`. 
 | `schema_migrations` | Applied migration versions | `version`, `applied_at` |
 | `profile` | Owner preferences as key/value JSON | `key`, `value` (timezone, targets, tone, quiet-hour overrides) |
 | `messages` | Recent conversation turns | `id`, `ts`, `role`, `content`, `tool_calls`, `tokens`, `origin` |
-| `memories` | Long-term facts and summaries | `id`, `ts`, `kind`, `content`, `origin`, `confidence`, `source_msg_id`, `embedding?` |
-| `pending_actions` | Confirmations awaiting the owner | `id`, `ts`, `tool`, `args_json`, `summary`, `expires_at`, `state` |
 | `audit_log` | Tool calls | `id`, `ts`, `plugin`, `tool`, `risk`, `confirmed`, `status`, `summary` |
 | `llm_usage` | Cost accounting | `ts`, `slot`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `generation_id` |
 
@@ -38,12 +36,13 @@ SQLite in WAL mode via `modernc.org/sqlite`. One database file, `data/kest.db`. 
 | `tasks` | Title, due, state, priority (focus module) |
 | `experiments` | Variant assignments and outcomes (opt-in) |
 
-### Plugins
+### Plugins and memory
 
 | Table | Purpose |
 | --- | --- |
-| `plugin_kv` | `plugin`, `key`, `value`, scoped storage |
-| `plugin_state` | Enabled flag, last init error, version |
+| `plugin_kv` | `plugin`, `key`, `value`, scoped storage; survives `/forget` |
+| `pending_actions` | Approvals awaiting the owner: tool, exact arguments, state (`pending`, `approved`, `cancelled`, `expired`). Left-over rows are cancelled at startup |
+| `memories` | `kind` (`fact`, `summary`), `content`, `origin`, `confidence`, `source_msg_id` |
 
 Secrets and OAuth tokens are **not** in the database; they live in `data/secrets.json` (mode 0600) or environment variables.
 
@@ -52,7 +51,7 @@ Secrets and OAuth tokens are **not** in the database; they live in `data/secrets
 - Primary keys: ULID text, except natural keys such as `(habit_id, date)`.
 - Dates that are local calendar days use `TEXT` in `YYYY-MM-DD` with the zone recorded at write time.
 - Foreign keys on; cascades only where deletion is meaningful.
-- Raw `messages` are pruned after `retention_days` (default 90). Summaries, habit logs and sleep nights persist.
+- Memories and plugin data are separate from `messages`. Raw `messages` are pruned after `retention_days` (default 90). Summaries, habit logs and sleep nights persist.
 - Export: `/export` writes a JSON archive of all tables except secrets. `/forget` deletes everything after confirmation.
 
 ## Startup checks

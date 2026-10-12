@@ -143,11 +143,11 @@ Rules:
 
 ## 5. Plugin conventions
 
-- A plugin lives in `plugins/<id>/` and contains `manifest.toml`, `plugin.go`, `README.md` and tests.
-- A plugin implements the interfaces in `internal/plugin` and registers itself in `plugins/all/all.go` (a generated import list).
+- A plugin lives in `plugins/<id>/` and contains `manifest.toml`, `plugin.go` (defining `func New() plugin.Plugin`), `README.md` and tests. The id is lower-case letters and digits, because the directory is also the Go package name.
+- A plugin implements the interfaces in `internal/plugin`. `plugins/all/all.go` is generated: run `make gen` after adding or removing a plugin. CI fails if it is stale.
 - Plugins never read global config. They receive a scoped config and a scoped storage handle at `Init`.
-- Each tool has a JSON Schema for parameters, a one-line description written for the model, and a `Risk` level (`read`, `write`, `destructive`).
-- Plugins are independently testable with the fake host in `internal/plugin/plugintest`.
+- Each tool has a JSON Schema for parameters, a short description written for the model, and a `Risk` level (`read`, `write`, `destructive`) that must match the manifest. Anything that sends data to a third party sets `Outbound`. Anything that returns text the owner did not write sets `Untrusted`.
+- Plugins are independently testable with the fake host in `internal/plugin/plugintest`; call `plugintest.RunContract` in every plugin's tests.
 - Full spec: [docs/architecture/plugins.md](docs/architecture/plugins.md).
 
 ## 6. Voice and user-facing text

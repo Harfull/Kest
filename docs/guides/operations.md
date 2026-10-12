@@ -33,6 +33,12 @@ Stop Kest before copying `kest.db` by hand, or use the backups folder. Layout is
 
 `/settings` and `/lockdown` are planned; see the roadmap.
 
+## Approvals
+
+When Kest wants to do something that sends information out, deletes data, or changes things after reading content from the internet, it shows exactly what it would run and waits for **Go ahead** or **Skip**. It waits two minutes. If you do not answer it skips the action and says so; a button pressed later does nothing. Approvals left over when Kest restarts are cancelled.
+
+Every tool call is recorded in the audit log (what ran, its risk, whether you approved, the outcome) without the content.
+
 ## Rotating credentials
 
 | Credential | Steps |

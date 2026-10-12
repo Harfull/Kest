@@ -34,18 +34,22 @@ Kest answers in Telegram, owner-only, with real persistence.
 
 Exit criteria: send a text or voice note and get a text or voice reply; restart without losing scheduled reminders. The code paths are covered by automated tests against fake Telegram and OpenRouter servers; a live end-to-end run with a real bot token is still to be done by the owner.
 
-## Phase 2: Tools ⬜
+## Phase 2: Tools 🚧
 
 The agent can act, safely.
 
-- ⬜ `plugin` framework: interfaces, manifest, registry, capabilities, risk, contract tests
-- ⬜ `agent`: turn loop, tool calling, iteration caps, confirmations, untrusted data wrapping
-- ⬜ Memory with provenance and summaries
-- ⬜ Plugins: `reminders`, `tasks`, `webfetch`
-- ⬜ `scripts/genplugins` and `plugins/all`
-- ⬜ Model evaluation harness for persona and tool use
+- ✅ `plugin` framework: interfaces, manifest, registry, capabilities, risk, SSRF-safe HTTP, `plugintest` and a contract check
+- ✅ `agent`: tool loop with iteration and call caps, risk policy, taint tracking, approvals with exact arguments
+- ✅ Untrusted-content wrapping that cannot be closed from inside
+- ✅ Memory with provenance: `remember`, `recall`, `forget_fact`, quarantine after untrusted reads, summaries that skip tainted replies
+- ✅ Plugins: `reminders`, `tasks`, `webfetch`
+- ✅ `scripts/genplugins` and `plugins/all`, checked in CI
+- ✅ Prompt-injection test suite (policy, wrapper breakout, exfiltration attempts, memory poisoning, forged approvals)
+- ✅ Model evaluation harness (opt-in, real API): tone, tool use, injection resistance
+- ⬜ Run the evaluation against candidate models and record the results
+- ⬜ Cheap tool router for large tool sets (not needed with three plugins)
 
-Exit criteria: "remind me to stretch at 3 and tomorrow at 9" works; a prompt-injection test suite passes.
+Exit criteria: "remind me to stretch at 3 and tomorrow at 9" works; a prompt-injection test suite passes. Both hold in automated tests against a scripted model; a live check with a real model and a real bot token is still to be done.
 
 ## Phase 3: Coach core ⬜
 

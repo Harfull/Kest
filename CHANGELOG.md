@@ -22,6 +22,11 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 - Owner-only Telegram transport with ordered delivery, HTML formatting, message splitting, inline buttons, voice and documents.
 - Persona-driven conversation, kept in sync with `docs/persona/prompt-core.md` by a test.
 - Working bot: text and voice conversations, `/start`, `/help`, `/status`, `/export`, `/forget` with an expiring confirmation, and nightly backup and pruning.
+- Plugin framework: manifests with typed settings, a registry that rejects code that disagrees with its manifest, per-plugin storage, jobs and secrets, and an HTTP client that refuses private and metadata addresses.
+- Agent tool loop with caps, a risk policy, taint tracking after untrusted content, and Telegram approvals that show the exact arguments and fail closed.
+- Untrusted-content wrapping, memory with provenance and quarantine, summarization that skips tainted replies, and a voice checker.
+- Plugins: `reminders`, `tasks` and `webfetch`, plus `scripts/genplugins` to keep `plugins/all` current.
+- Prompt-injection test suite and an opt-in model evaluation harness (`go test -tags eval`).
 
 ### Changed
 

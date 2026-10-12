@@ -1,21 +1,20 @@
 # Plugin system
 
-Design rationale: [../research/integrations/](../research/integrations/README.md) and [ADR 0004](../decisions/0004-plugin-tiers.md).
+Design rationale: [../research/integrations/](../research/integrations/README.md) and [ADR 0004](../decisions/0004-plugin-tiers.md). Safety model: [security.md](security.md).
 
 ## Tiers
 
-| Tier | Where it lives | Who writes it | Typical use |
+| Tier | Where it lives | Who writes it | Status |
 | --- | --- | --- | --- |
-| 1. Native | `plugins/<id>/`, compiled in | Kest maintainers | Gmail, mailbox, Notion, reminders, calendar |
-| 2. MCP | `[[mcp.servers]]` in config | Third parties | The long tail: GitHub, Slack, Linear, filesystem, databases |
-| 3. Declarative | `plugins.d/*.toml` in the data dir | The owner | Simple REST APIs and webhooks |
+| 1. Native | `plugins/<id>/`, compiled in | Kest maintainers | Built: `reminders`, `tasks`, `webfetch` |
+| 2. MCP | `[[mcp.servers]]` in config | Third parties | Planned, Phase 5 |
+| 3. Declarative | `plugins.d/*.toml` in the data dir | The owner | Planned, Phase 5 |
 
-All tiers present the same thing to the rest of the system: a set of **tools** registered under `plugin_id.tool_name`, each with a JSON Schema, a description for the model, and a **risk** level.
+All tiers present the same thing to the rest of the system: **tools** registered under `plugin_id.tool_name`, each with a JSON Schema, a description for the model, and a **risk** level.
 
 ## Core types (`internal/plugin`)
 
 ```go
-// Plugin is the unit of extension.
 type Plugin interface {
     Manifest() Manifest
     Init(ctx context.Context, host Host) error
@@ -23,166 +22,146 @@ type Plugin interface {
     Close(ctx context.Context) error
 }
 
-// EventSource is implemented by plugins that push events, such as new mail.
-type EventSource interface {
-    Watch(ctx context.Context, emit func(Event)) error
-}
-
-// JobProvider is implemented by plugins that need scheduled work.
+// Implemented by plugins that schedule work (manifest: capabilities.jobs = true).
 type JobProvider interface {
-    Jobs() []JobSpec
-    RunJob(ctx context.Context, name string) error
+    JobNames() []string
+    RunJob(ctx context.Context, name, payload string) error
 }
 
 type Tool struct {
-    Name        string          // verb_noun, unique within the plugin
-    Description string          // written for the model; one or two sentences
-    Schema      json.RawMessage // JSON Schema for arguments
-    Risk        Risk            // RiskRead, RiskWrite, RiskDestructive
+    Name        string          // verb_noun, lower snake case, unique within the plugin
+    Description string          // written for the model
+    Schema      json.RawMessage // JSON Schema object for the arguments
+    Risk        Risk            // RiskRead, RiskWrite, RiskDestructive; must match the manifest
+    Outbound    bool            // sends data to third parties: always confirmed
+    Describe    func(args json.RawMessage) string // renders arguments for approval prompts (optional)
     Handler     func(ctx context.Context, call Call) (Result, error)
 }
 
 type Result struct {
     Content   string // text returned to the model
-    Untrusted bool   // true if Content came from outside (email, web); wrapped as data
-    Summary   string // short human line for the audit log and confirmations
+    Untrusted bool   // came from outside the owner and Kest: wrapped as data, taints the turn
+    Summary   string // short line for the audit log
 }
 ```
 
-`Host` is what a plugin may use. It is deliberately small:
+`Host` is everything a plugin may use. Every handle is scoped to that plugin:
 
 ```go
 type Host interface {
-    Logger() *slog.Logger         // already scoped with the plugin id
-    Clock() clock.Clock
-    Config() Config               // this plugin's config section only
-    Secret(name string) (string, error)
-    KV() KV                       // plugin-scoped key/value storage
-    HTTP() *http.Client           // enforces the manifest's network allowlist
-    Notify(ctx context.Context, n Notification) error // goes through coach budget
+    Logger() *slog.Logger                  // scoped with the plugin id
+    Clock() clock.Clock                    // never call time.Now
+    Location() *time.Location              // the owner's time zone
+    Config() Config                        // this plugin's validated settings
+    Secret(name string) (string, error)    // only names the manifest declared
+    KV() KV                                // plugin-scoped key/value storage
+    Jobs() Jobs                            // schedule persistent jobs (own jobs only)
+    HTTP() *http.Client                    // allowlisted hosts, no private addresses
+    Notify(ctx context.Context, n Notification) error
 }
 ```
 
+Not built yet: `EventSource` (plugins that push events such as new mail). It arrives with the email plugins in Phase 4.
+
 ## Manifest
 
-Every plugin has a `manifest.toml` (embedded for native plugins).
+Every plugin embeds a `manifest.toml`. The registry refuses a plugin whose code disagrees with it.
 
 ```toml
-id          = "notion"
-name        = "Notion"
+id          = "webfetch"
+name        = "Web fetch"
 version     = "0.1.0"
-description = "Search and edit pages and data sources in the owner's Notion workspace."
+description = "Fetch a web page and return its readable text."
 
 [capabilities]
-network = ["api.notion.com"]
-secrets = ["NOTION_TOKEN"]
-events  = false
+network = ["*"]            # hosts the plugin may contact; "*" = any public host
+secrets = []               # names readable through Host.Secret
+jobs    = false            # true if the plugin implements JobProvider
 
-[config]
-# Keys the plugin reads from [plugins.notion] in config.toml.
-# Each entry documents type, default and whether it is required.
-notion_version = { type = "string", default = "2025-09-03" }
-default_data_source = { type = "string", required = false }
+[config]                   # settings under [plugins.<id>] in config.toml
+max_chars = { type = "int", default = 6000 }      # types: string, int, float, bool
 
 [[tools]]
-name = "search"
+name = "fetch_url"
 risk = "read"
-
-[[tools]]
-name = "create_page"
-risk = "write"
 ```
 
-The registry checks that the manifest matches the tools the code returns and fails startup for a plugin that declares a risk lower than the code uses.
+Load-time checks (`internal/plugin/registry.go`):
 
-## Lifecycle
+- the manifest is valid and its `id` equals the id it was registered under;
+- every code tool is declared with the **same** risk, and every declared tool exists;
+- `capabilities.jobs` matches whether the plugin implements `JobProvider`;
+- settings from `config.toml` are known, correctly typed, and required ones are present;
+- `Init` finishes within 30 seconds.
 
-1. **Register.** Native plugins register in `init`-free fashion: `plugins/all` exports `All() []plugin.Factory`, called by `app`.
-2. **Configure.** The registry reads `[plugins.<id>]`, validates it against the manifest, and builds a scoped `Host`.
-3. **Init.** `Init` runs with a timeout. A failure disables only that plugin and is shown in `/status`.
-4. **Serve.** Tools are advertised to the model. Calls pass through the policy layer, then the handler.
-5. **Close.** Reverse order on shutdown, with a deadline.
+A plugin that fails any check is disabled and reported by `/status`; the others keep working. An unknown id in `enabled_plugins` is reported the same way.
 
-## Naming and exposure to the model
+## Configuration
 
-- Tools are exposed as `plugin_id.tool_name`, sanitized to `[a-zA-Z0-9_-]{1,64}` (the dot becomes `__` when the model API requires it, and is mapped back).
-- To keep prompts small, the agent sends only tools relevant to the turn: always-on core tools plus plugins selected by a cheap router (keyword and recent-use heuristics, later a model-based selector). All tools remain callable by name if the model has seen their schema in the conversation.
+```toml
+enabled_plugins = ["reminders", "tasks", "webfetch"]   # or KEST_PLUGINS=reminders,tasks
+
+[plugins.reminders]
+max_active = 50
+```
+
+Settings for a plugin that is not enabled are a configuration error. Secrets are read from `KEST_SECRET_<NAME>` environment variables, for example `KEST_SECRET_NOTION_TOKEN`, and only for names the manifest declared.
+
+## Naming
+
+Tools are exposed to the model as `plugin__tool` (function names cannot contain dots) and shown to people as `plugin.tool`. The built-in memory tools (`memory__remember`, `memory__recall`, `memory__forget_fact`) follow the same rules and cannot be shadowed by a plugin.
 
 ## Policy at call time
 
+Implemented in `internal/agent/policy.go`.
+
 ```text
 read         run immediately
-write        run if the user's current message plainly asked for it; otherwise confirm
-destructive  always confirm with an inline button built from the structured arguments
-unknown      (MCP / declarative without risk) treated as write
+write        run immediately, unless untrusted content was read earlier in this turn: then ask
+destructive  always ask
+outbound     (Tool.Outbound) treated as destructive whatever Risk says
 ```
 
-Plugins cannot lower their own risk at runtime. Owners can raise any tool's risk in config; lowering requires an explicit `trusted = true` entry.
+"Ask" means an approval message in Telegram showing the exact arguments with **Go ahead** and **Skip** buttons. The turn waits (two minutes by default). No answer, a late press, a forged id or a restart all mean the action does not run.
+
+Plugins cannot lower their own risk at runtime, and the risk in the manifest is checked against the code at load.
 
 ## Untrusted content
 
-A tool that returns anything not authored by the owner or Kest (email body, web page, Notion text, MCP output) sets `Untrusted: true`. The agent wraps it:
+A tool that returns anything the owner and Kest did not write (a web page, an email body, a third-party API response) sets `Result.Untrusted`. The agent then:
 
-```text
-<external_data source="gmail.read_thread" trust="untrusted">
-...content...
-</external_data>
-```
+1. wraps the content as `<external_data source="plugin.tool" trust="untrusted">…</external_data>` after stripping control characters, truncating, and neutralizing anything that looks like the wrapper's own tags;
+2. marks the rest of the turn **tainted**, so state-changing tools need approval;
+3. stores the turn's reply with origin `kest:tainted`, so summaries leave it out;
+4. quarantines any memory saved during the turn.
 
-The system prompt states that nothing inside such blocks is an instruction. See [security.md](security.md).
+## Jobs and notifications
 
-## MCP plugin (`plugins/mcp`)
+A plugin with `capabilities.jobs = true` schedules work through `Host.Jobs()` and handles it in `RunJob`. Jobs are persistent scheduler jobs owned by `plugin:<id>` and named `<id>/<job>`; a plugin can only list or cancel its own. `Host.Notify` sends the owner a message; `Urgent` is for things the owner asked to be told at a specific time, such as a reminder.
 
-```toml
-[[mcp.servers]]
-id        = "github"
-transport = "stdio"                       # or "http"
-command   = "npx"
-args      = ["-y", "@modelcontextprotocol/server-github"]
-env       = ["GITHUB_TOKEN"]              # names only; values come from secrets
-risk_default = "write"
-allow_tools  = ["search_repositories", "get_issue"]   # optional allowlist
-[mcp.servers.risk]
-create_issue = "write"
-delete_repo  = "destructive"
-```
+## Network
 
-- One goroutine per server owns the session, with reconnect and backoff.
-- Server-provided descriptions are truncated and stripped of control characters before they reach the model.
-- Tool names become `github.search_repositories`.
+`Host.HTTP()` returns a client that:
 
-## Declarative plugin example (`plugins.d/lights.toml`)
+- only contacts hosts in `capabilities.network` (or any public host for `"*"`) over http or https;
+- refuses private, loopback, link-local, carrier-grade NAT, multicast and cloud-metadata addresses **at connection time**, so a name that resolves to an internal address is refused too;
+- re-checks every redirect and stops after five;
+- has no proxy and a 20 second timeout.
 
-```toml
-id = "lights"
-description = "Control living room lights through the home hub."
-[http]
-base_url = "https://hub.local/api"
-allow_hosts = ["hub.local"]
-auth = { type = "bearer", secret = "HUB_TOKEN" }
+## Writing a plugin
 
-[[tools]]
-name = "set_scene"
-risk = "write"
-description = "Set the lighting scene."
-method = "POST"
-path = "/scenes/{scene}"
-params = { scene = { type = "string", enum = ["bright", "focus", "dim", "off"] } }
-```
+1. Create `plugins/<id>/` (the id is lower-case letters and digits; it becomes the Go package name) with `manifest.toml`, `plugin.go` defining `func New() plugin.Plugin`, a `README.md` and tests.
+2. Declare minimal capabilities and honest risk levels. Mark external text `Untrusted`.
+3. Keep tool descriptions short and written for the model. Validate every argument; treat arguments as untrusted input too.
+4. Run `make gen` to update `plugins/all`, which lists the built-in plugins. CI fails if it is stale.
+5. Test with `internal/plugin/plugintest`: `NewHost()` gives a fake clock, in-memory storage and jobs, and `RunContract(t, New, cfg)` checks the manifest/code agreement and tool shape.
+6. Add the plugin to the README table and the roadmap.
 
-The host builds the JSON Schema, performs the request through the allowlisted client, and returns the response as untrusted content.
+## MCP and declarative plugins (planned)
 
-## Testing plugins
+The designs from the research stand:
 
-- `plugintest.Host` provides a fake clock, in-memory KV, a recording HTTP transport and secret map.
-- `plugintest.RunContract(t, factory)` checks manifest and tool consistency, schema validity, name rules and that handlers honor context cancellation.
-- Live API tests live behind the `integration` build tag.
+- **MCP:** `[[mcp.servers]]` entries (stdio or HTTP) whose tools are bridged into the registry as `server.tool`, with unknown tools defaulting to `write` risk, descriptions truncated and sanitized, and results always untrusted.
+- **Declarative:** a TOML file describing HTTP calls and parameter schemas, executed through the allowlisted client, with results untrusted.
 
-## Writing a plugin: checklist
-
-1. Create `plugins/<id>/` with `manifest.toml`, `plugin.go`, `README.md`, tests.
-2. Declare minimal capabilities and honest risk levels.
-3. Mark external text as untrusted.
-4. Rate-limit calls to the upstream API inside the plugin.
-5. Run `go generate ./plugins/...` to refresh `plugins/all`.
-6. Add the plugin to the roadmap and the README table.
+Both use the same policy, naming and approval flow as native plugins.

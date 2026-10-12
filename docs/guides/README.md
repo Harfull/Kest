@@ -5,5 +5,6 @@
 | [configuration.md](configuration.md) | Every setting, its environment variable and default |
 | [operations.md](operations.md) | Running, backups, rotating keys, troubleshooting |
 | [development.md](development.md) | Setting up a dev environment and running checks |
+| [model-evaluation.md](model-evaluation.md) | Trying a candidate model for tone, tool use and injection resistance |
 
-Planned: plugin authoring (Phase 2), Gmail setup (Phase 4), model evaluation (Phase 2).
+Plugin authoring is covered in [../architecture/plugins.md](../architecture/plugins.md). Planned: Gmail setup (Phase 4).

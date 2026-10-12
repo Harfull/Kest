@@ -18,9 +18,10 @@ go run ./cmd/kest
 ## Checks
 
 ```bash
-make check     # fmt-check, egg-check, vet, lint, test
+make check     # fmt-check, egg-check, gen-check, vet, lint, test
 make cover     # writes coverage.html
 make egg       # regenerate the Pterodactyl egg after editing install.sh or variables
+make gen       # regenerate plugins/all after adding or removing a plugin
 ```
 
 Without `make`:
@@ -28,6 +29,7 @@ Without `make`:
 ```bash
 gofmt -l .
 go run ./scripts/sync-egg -check
+go run ./scripts/genplugins -check
 go vet ./...
 golangci-lint run
 go test ./...
@@ -50,4 +52,4 @@ Read [AGENTS.md](../../AGENTS.md) first. Highlights:
 
 ## Adding a plugin
 
-See [../architecture/plugins.md](../architecture/plugins.md). The framework lands in Phase 2.
+See "Writing a plugin" in [../architecture/plugins.md](../architecture/plugins.md).
