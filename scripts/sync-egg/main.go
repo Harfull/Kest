@@ -181,7 +181,7 @@ func build(script string) egg {
 			},
 			{
 				Name:         "Kest Version",
-				Description:  "Release tag to install, for example v0.1.0, or latest. Takes effect on reinstall.",
+				Description:  "Release tag to install, for example v0.1.0-beta.1, or latest (the newest stable release, or the newest beta while no stable release exists). Takes effect on reinstall.",
 				EnvVariable:  "KEST_VERSION",
 				DefaultValue: "latest",
 				UserViewable: true,

@@ -10,7 +10,7 @@ Background and field-level notes: [../research/hosting/README.md](../research/ho
 - A Telegram bot token from [@BotFather](https://t.me/BotFather).
 - Your numeric Telegram user ID (message `@userinfobot`).
 - An [OpenRouter](https://openrouter.ai/keys) API key with a little credit.
-- A published Kest release, because the installer downloads binaries from GitHub Releases.
+- A published Kest release. The installer downloads binaries from GitHub Releases; betas such as `v0.1.0-beta.1` are published as pre-releases (see [releasing](../guides/releasing.md)).
 
 ## 1. Import the egg
 
@@ -29,7 +29,7 @@ Background and field-level notes: [../research/hosting/README.md](../research/ho
 | OpenRouter API Key | From openrouter.ai |
 | Owner Telegram ID | Your numeric ID. Comma-separate several |
 | Timezone | For example `Europe/London`. Controls every schedule |
-| Kest Version | `latest` or a tag such as `v0.1.0` |
+| Kest Version | `latest` (newest stable, or newest beta while no stable exists) or an exact tag such as `v0.1.0-beta.1` |
 | Models | Defaults work; see the OpenRouter model list |
 | Daily Budget (USD) | Spending guard, `0` disables |
 | Max Proactive Messages Per Day | Default 3 |
@@ -85,4 +85,4 @@ make egg
 
 CI fails if the committed egg is stale (`make egg-check`). Per [AGENTS.md](../../AGENTS.md), any change to environment variables, ports, startup command or data layout must update the egg in the same batch.
 
-Before publishing a release, import the egg into a test panel, create a server, and confirm the install and the `kest: ready` detection work. The egg format was cross-checked against public references but not yet verified on a live panel.
+The egg is attached to every release. The format was cross-checked against public references; if a panel rejects the import or shows a field wrongly, open an issue with the panel version.

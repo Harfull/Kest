@@ -41,7 +41,7 @@ Configuration reference: [docs/guides/configuration.md](docs/guides/configuratio
 
 ## Hosting
 
-- **Pterodactyl:** import [deploy/pterodactyl/egg-kest.json](deploy/pterodactyl/egg-kest.json). Guide: [docs/deployment/pterodactyl.md](docs/deployment/pterodactyl.md).
+- **Pterodactyl:** import `egg-kest.json` from the [latest release](https://github.com/Harfull/Kest/releases) (or [the file in this repo](deploy/pterodactyl/egg-kest.json)). Guide: [docs/deployment/pterodactyl.md](docs/deployment/pterodactyl.md). Versioning: [docs/guides/releasing.md](docs/guides/releasing.md).
 - **Docker:** see [deploy/docker/Dockerfile](deploy/docker/Dockerfile).
 
 ## Documentation

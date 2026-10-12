@@ -21,6 +21,11 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check generated files are current
+        run: |
+          make egg-check
+          make gen-check
+
       - name: Test
         run: make test
 
@@ -38,6 +43,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          # Tags with a hyphen (v0.1.0-beta.1) are pre-releases.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
           files: |
             dist/kest-linux-amd64
             dist/kest-linux-arm64

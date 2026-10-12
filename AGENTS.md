@@ -199,7 +199,7 @@ We commit and push in **batches**: a batch is a coherent set of commits that tog
 
 ### 7.4 Releases
 
-- Semantic Versioning. Tags are `vMAJOR.MINOR.PATCH`.
+- Semantic Versioning. Tags are `vMAJOR.MINOR.PATCH`, with `-beta.N` for pre-releases (`v0.1.0-beta.1`). Full process: [docs/guides/releasing.md](docs/guides/releasing.md).
 - `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/). Update it under `Unreleased` in the same batch as user-visible changes.
 - Pushing a tag triggers the release workflow: build binaries for linux/amd64 and linux/arm64, publish a container image, attach the egg.
 

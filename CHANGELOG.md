@@ -4,6 +4,10 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.1.0-beta.1] - 2026-10-11
+
+First beta, for testing the Pterodactyl egg and the Telegram bot end to end. Everything below was built before this release.
+
 ### Added
 
 - Repository conventions in `AGENTS.md`.
