@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Harfull/Kest/internal/clock"
@@ -73,9 +74,12 @@ type Toolbox interface {
 
 // Options configures an Agent.
 type Options struct {
-	Chat    Chatter
-	Store   Store
-	Tools   Toolbox   // optional; the built-in memory tools are always added
+	Chat  Chatter
+	Store Store
+	Tools Toolbox          // optional; the built-in memory tools are always added
+	Extra []plugin.ToolRef // further built-in tools, such as the coach's; they win name clashes like the memory tools
+	// Context adds facts to the system prompt each turn. It returns trusted text only.
+	Context func(ctx context.Context) string
 	Confirm Confirmer // required for any tool that can need approval
 	Clock   clock.Clock
 	Loc     *time.Location
@@ -95,6 +99,9 @@ type Agent struct {
 	clock   clock.Clock
 	loc     *time.Location
 	log     *slog.Logger
+
+	extraContext func(ctx context.Context) string
+	locked       atomic.Bool
 
 	historyN, maxIter, maxCalls int
 }
@@ -123,8 +130,9 @@ func New(o Options) *Agent {
 	a := &Agent{
 		chat: o.Chat, db: o.Store, confirm: o.Confirm, clock: o.Clock, loc: o.Loc, log: o.Log,
 		historyN: o.HistoryN, maxIter: o.MaxIterations, maxCalls: o.MaxToolCalls,
+		extraContext: o.Context,
 	}
-	core := memoryTools{db: o.Store, clock: o.Clock}.refs()
+	core := append(memoryTools{db: o.Store, clock: o.Clock}.refs(), o.Extra...)
 	a.tools = merge(o.Tools, core)
 	return a
 }
@@ -140,8 +148,18 @@ func (a *Agent) SystemPrompt(ctx context.Context) string {
 	b.WriteString("- When a tool needs a time, give an absolute local time such as 2026-10-12T09:00, worked out from the local time above.\n")
 	b.WriteString("- Use tools only for things the owner asked for. If the owner declines an action, do not try it again.\n")
 	b.WriteString(a.memoryContext(ctx))
+	if a.extraContext != nil {
+		b.WriteString(a.extraContext(ctx))
+	}
 	return b.String()
 }
+
+// SetLockdown turns lockdown on or off. While it is on, only read tools run:
+// anything that writes, deletes or sends is refused, whatever the owner is asked.
+func (a *Agent) SetLockdown(on bool) { a.locked.Store(on) }
+
+// Locked reports whether lockdown is on.
+func (a *Agent) Locked() bool { return a.locked.Load() }
 
 // Reply records the owner's message, runs the turn and returns Kest's answer.
 // If the model call fails the owner's message stays in history, so the next
@@ -288,6 +306,9 @@ func (a *Agent) runTool(ctx context.Context, tc llm.ToolCall) (content string, u
 	}
 
 	risk, decision, reason := Decide(ref.Tool.Risk, ref.Tool.Outbound, tainted(ctx))
+	if a.locked.Load() && risk != plugin.RiskRead {
+		return "Error: lockdown is on, so only reading is allowed. Tell the owner this was not done and that it will work again after a restart.", false
+	}
 
 	audit := store.AuditEntry{Actor: "owner", Action: full, Risk: risk.String()}
 	finish := func(status, summary string) {

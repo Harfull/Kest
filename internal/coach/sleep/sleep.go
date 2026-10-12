@@ -246,13 +246,16 @@ func (m Model) Onset() int { return m.onset }
 // Wake returns the usual wake time as minutes since local midnight.
 func (m Model) Wake() int { return m.wake }
 
+// QuietStart returns when quiet hours begin, in minutes since local midnight.
+func (m Model) QuietStart() int { return (m.onset - quietBefore + 1440) % 1440 }
+
 // quietBefore is how long before the usual sleep time quiet hours begin.
 const quietBefore = 30
 
 // InQuiet reports whether t falls in quiet hours: from half an hour before the
 // usual sleep time until the usual wake time.
 func (m Model) InQuiet(t time.Time) bool {
-	start := (m.onset - quietBefore + 1440) % 1440
+	start := m.QuietStart()
 	end := m.wake
 	mod := minuteOfDay(t, m.loc)
 	if start <= end {

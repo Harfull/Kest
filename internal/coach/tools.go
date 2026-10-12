@@ -458,6 +458,19 @@ func (c *Coach) prefsText(p Prefs) string {
 	return s
 }
 
+// Settings describes the current check-in settings and quiet hours, for /settings.
+func (c *Coach) Settings(ctx context.Context) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	m := c.model(ctx, c.clock.Now())
+	source := "from your configured hours"
+	if m.Learned() {
+		source = fmt.Sprintf("learned from your last %d nights", m.Nights())
+	}
+	return c.prefsText(c.prefs(ctx)) + fmt.Sprintf("\nQuiet hours: %s to %s (%s).", clockText(m.QuietStart()), clockText(m.Wake()), source)
+}
+
 // PromptContext returns coaching facts and guidance for the agent's system
 // prompt: the habits being kept, last night's sleep, and how to set up a habit.
 func (c *Coach) PromptContext(ctx context.Context) string {
