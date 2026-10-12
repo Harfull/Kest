@@ -63,6 +63,7 @@ Sources: [TTS guide](https://openrouter.ai/docs/features/multimodal/tts), and a 
 5. If anything in the voice path fails, send the reply as text.
 
 Caveats: the Opus encoder is pre-v1 (v0.2.x), and the PCM sample-rate default is documented behavior of the common models rather than something every model promises. Both are covered by round-trip tests (encode, decode, compare pitch and length).
+
 ## Decision
 
 1. Write a **thin, in-house OpenRouter client** on `net/http` in `internal/llm`. The surface is small (chat, tools, two audio calls), and an SDK would hide retry, cost and fallback behavior we want to control.
