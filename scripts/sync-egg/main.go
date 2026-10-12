@@ -121,7 +121,7 @@ func buildBrowser(script string) egg {
 	e := build(script)
 	e.Name = "Kest with Chromium"
 	e.Description += " Requires the custom browser image built from deploy/docker/Dockerfile.browser and host support for Chromium user namespaces."
-	e.DockerImages = map[string]string{"Chromium (local image on Wings node)": "~kest-browser:local"}
+	e.DockerImages = map[string]string{"Chromium (local image on Wings node)": "kest-browser:local"}
 	for i := range e.Variables {
 		if e.Variables[i].EnvVariable == "KEST_PLUGINS" {
 			e.Variables[i].DefaultValue += ",browser"

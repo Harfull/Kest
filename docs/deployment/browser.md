@@ -22,7 +22,7 @@ docker build --target headless -f deploy/docker/Dockerfile.browser -t kest-brows
 ```
 
 1. Import [egg-kest-browser.json](../../deploy/pterodactyl/egg-kest-browser.json). It keeps the existing checksum-verified binary installer and enables `browser` in the plugin list.
-2. Select the `~kest-browser:local` image. Wings' `~` prefix uses an image already built on that node instead of pulling from a registry. For multiple nodes, build on every node or push your own image and change the egg's image reference to that registry tag.
+2. Set the server's **Docker Image** to exactly `kest-browser:local`, without quotes or a `~` prefix. Check on the Wings node with `docker image inspect kest-browser:local`. Upstream Wings attempts a pull and falls back to a matching local image if the pull fails. Its special `~` prefix skips pulling on supported versions, but is not a valid Docker image reference if a daemon forwards it unchanged. The egg therefore uses the plain tag for compatibility. For multiple nodes, build on every node or push your own image and use that registry tag.
 3. Use the allocation above, fill the normal Telegram/OpenRouter/owner variables, and leave **Chromium Sandbox** true.
 4. Until a new release containing this work is published, extract the newly built binary with `docker run --rm --entrypoint cat kest-browser:local /usr/local/bin/kest > kest`, stop the server, and upload it through the panel after installation (ensure it is executable). The image prefers `/home/container/kest` when present. A reinstall downloads the configured release again, so do not reinstall an older release over this binary.
 5. Start, check `/status`, then ask Kest to open a web page. Approve the navigation. `/status` confirms plugin loading; the first browser action also verifies Chromium can launch on this host.
@@ -97,6 +97,8 @@ This binds the forwarder only to the node's loopback and reaches noVNC inside th
 
 | Symptom | Action |
 | --- | --- |
+| Docker reports `invalid reference format` | Set the existing server's Docker Image field to `kest-browser:local`, without quotes or `~`; changing or reimporting the egg does not necessarily change an existing server's field |
+| Registry pull reports access denied, then Kest reaches `kest: ready` | The daemon continued with the locally built image; this pull warning does not mean startup failed. Use your own published registry image if you want registry pulls to succeed |
 | Plugin missing from `/status` | Include `browser` in `KEST_PLUGINS` and use the new binary |
 | Could not locate Node | Use the browser runtime image or install Node and set `node_path` |
 | Runtime unavailable | Install the locked module and matching Chromium; check `KEST_BROWSER_MODULE_PATH` |

@@ -72,7 +72,7 @@ func TestStartupDoneMatchesAppReadyMessage(t *testing.T) {
 
 func TestBrowserEggUsesRuntimeAndSafeDefaults(t *testing.T) {
 	e := buildBrowser("installer")
-	if e.DockerImages["Chromium (local image on Wings node)"] != "~kest-browser:local" {
+	if e.DockerImages["Chromium (local image on Wings node)"] != "kest-browser:local" {
 		t.Fatal("browser image missing")
 	}
 	settings := map[string]string{}

@@ -10,7 +10,7 @@
     "description": "Kest is a personal accountability assistant that runs as a Telegram bot. It helps you stay consistent with workouts, meals, sleep and focus, and connects to services such as Gmail and Notion through plugins. Requires the custom browser image built from deploy/docker/Dockerfile.browser and host support for Chromium user namespaces.",
     "features": [],
     "docker_images": {
-        "Chromium (local image on Wings node)": "~kest-browser:local"
+        "Chromium (local image on Wings node)": "kest-browser:local"
     },
     "file_denylist": [],
     "startup": "./kest",
