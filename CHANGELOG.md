@@ -4,6 +4,10 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- Include the secrets configuration Go source in Git and Docker builds; broad secret-file ignore rules previously omitted it and caused undefined configuration symbols in fresh checkouts.
+
 ### Added
 
 - An optional Chromium browser plugin using Playwright, with persistent cookies and logins, page reading, navigation, clicks, fields, keys, scrolling, inbox uploads, local screenshots and tab management. Outbound actions require Telegram approval and browser content is untrusted.

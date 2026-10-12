@@ -187,6 +187,7 @@ Rules:
 - One logical change per commit. A commit builds and passes tests on its own.
 - Code and the docs that describe it go in the same commit or the same batch.
 - Never commit secrets, `.env` files, databases, or build output.
+- Secret-file ignore rules must preserve Go source files such as `secrets.go`. Verify a build from tracked or staged files when adding build-context exclusions; a working checkout can hide missing source.
 
 ### 7.3 Batching
 

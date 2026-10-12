@@ -11,6 +11,7 @@ dist
 **/*.pem
 **/*.key
 **/secrets.*
+!**/secrets.go
 **/config.toml
 **/credentials.json
 **/token.json
