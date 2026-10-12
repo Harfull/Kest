@@ -227,3 +227,23 @@ text = "Good to hear. That is worth noticing."
 kind = "good_day"
 variant = "b"
 text = "Glad it went well. Hold onto what worked."
+
+[[message]]
+kind = "browser_open"
+variant = "a"
+text = "Opening the page."
+
+[[message]]
+kind = "browser_read"
+variant = "a"
+text = "Checking the browser page."
+
+[[message]]
+kind = "browser_capture"
+variant = "a"
+text = "Taking a screenshot."
+
+[[message]]
+kind = "browser_work"
+variant = "a"
+text = "Working through the browser step."

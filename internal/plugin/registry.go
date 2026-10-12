@@ -190,6 +190,27 @@ func (r *Registry) Tools() []ToolRef {
 	return out
 }
 
+// Hints returns the usage guidance of every loaded plugin that provides some,
+// ordered by plugin ID.
+func (r *Registry) Hints() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ids := make([]string, 0, len(r.plugins))
+	for id := range r.plugins {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	var out []string
+	for _, id := range ids {
+		if p, ok := r.plugins[id].p.(Prompter); ok {
+			if hint := strings.TrimSpace(p.PromptHint()); hint != "" {
+				out = append(out, hint)
+			}
+		}
+	}
+	return out
+}
+
 // Lookup finds a tool by the name the model used.
 func (r *Registry) Lookup(wire string) (ToolRef, bool) {
 	r.mu.RLock()
@@ -302,7 +323,7 @@ func (h *host) Notify(ctx context.Context, n Notification) error {
 		return errors.New("no notifier configured")
 	}
 	n.Text = strings.TrimSpace(n.Text)
-	if n.Text == "" {
+	if n.Text == "" && len(n.Photo) == 0 {
 		return errors.New("empty notification")
 	}
 	return h.r.d.Notifier(ctx, n)

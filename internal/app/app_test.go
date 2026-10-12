@@ -50,6 +50,7 @@ type fakeRouter struct {
 	pcmOnly      atomic.Bool  // speech model refuses MP3 and returns PCM, like Gemini TTS
 	transcript   atomic.Value // string
 	chats        atomic.Int32
+	lastChat     atomic.Value // string: the raw body of the latest chat request
 	script       atomic.Value // func(chatRequest) string: the assistant message as JSON
 }
 
@@ -96,6 +97,7 @@ func (f *fakeRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/chat/completions":
 		f.chats.Add(1)
+		f.lastChat.Store(string(body))
 		if fail(f.chatStatus.Load()) {
 			return
 		}

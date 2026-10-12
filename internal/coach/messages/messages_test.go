@@ -10,6 +10,7 @@ import (
 // samples gives realistic data for each kind, in a "full" and an "empty" shape
 // so optional parts of templates are exercised both ways.
 var samples = map[string][]map[string]any{
+	"browser_open": {{}}, "browser_read": {{}}, "browser_capture": {{}}, "browser_work": {{}},
 	"morning": {
 		{"Sleep": "My guess is about seven hours of sleep. Close?", "Habit": "Walk after lunch"},
 		{"Sleep": "", "Habit": ""},

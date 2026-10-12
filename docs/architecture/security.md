@@ -32,9 +32,17 @@ Implemented in `internal/agent/policy.go`.
 | Outbound communication (email, message, post) | Treated as `destructive` regardless of plugin declaration |
 | Spending money or changing account settings | Not available as tools |
 
+A prompt for a `Grantable` tool also offers **Allow for this task**, which approves the same kind of step for the rest of that turn; see [Task grants](plugins.md#task-grants). It is the owner's explicit choice in the approval flow, it ends with the turn, and the plugin can exclude calls from it (the browser excludes purchases, sign-ins, credentials and leaving the site).
+
 Confirmations wait two minutes by default and fail closed: no answer, a late press, a forged id, or a restart all mean the action does not run. The prompt text is built from the structured call (tool name and each argument), never from model prose.
 
 **Taint tracking.** The moment a tool returns untrusted content (a web page, an email body), the rest of that turn is tainted. A model steered by that content may then ask for state changes, so every write needs approval. The next turn, started by the owner, is clean again.
+
+### Images
+
+Tool images (a browser screenshot the model asks to look at) are untrusted data like tool text: they taint the turn, are attached to that turn's model input only, never stored, and are limited to two per turn. They go to the same model provider that already receives the tool's text, so looking needs no separate approval. A photo the owner sends, or a screenshot they reply to, is the owner's own input.
+
+Telegram replies are context, not authority: the text of the message the owner replied to is shown to the model labeled as an earlier message, and a forwarded message is wrapped as untrusted data.
 
 ### Prompt construction
 
@@ -62,7 +70,7 @@ Confirmations wait two minutes by default and fail closed: no answer, a late pre
 
 ### Cost and abuse limits
 
-- Max agent iterations per turn (default 8) and max tool calls per turn (default 12).
+- Max agent iterations per turn (default 14) and max tool calls per turn (default 28). Browsing a site is many small steps; the limits still bound a runaway turn.
 - Daily and per-turn spend limits using `llm_usage`.
 - Plugin calls are rate-limited per upstream.
 

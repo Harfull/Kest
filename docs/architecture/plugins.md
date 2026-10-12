@@ -22,6 +22,12 @@ type Plugin interface {
     Close(ctx context.Context) error
 }
 
+// Implemented by plugins that want to teach the model how to use their tools.
+// The text is constant, trusted guidance added to the system prompt.
+type Prompter interface {
+    PromptHint() string
+}
+
 // Implemented by plugins that schedule work (manifest: capabilities.jobs = true).
 type JobProvider interface {
     JobNames() []string
@@ -35,6 +41,9 @@ type Tool struct {
     Risk        Risk            // RiskRead, RiskWrite, RiskDestructive; must match the manifest
     Outbound    bool            // sends data to third parties: always confirmed
     Describe    func(args json.RawMessage) string // renders arguments for approval prompts (optional)
+    AskReason   string          // completes "I am asking because ..." in the prompt (optional)
+    Grantable   bool            // the owner may approve this plugin's grantable tools for one turn
+    GrantCovers func(ctx context.Context, args json.RawMessage) bool // narrows a grant per call (optional)
     Handler     func(ctx context.Context, call Call) (Result, error)
 }
 
@@ -42,6 +51,7 @@ type Result struct {
     Content   string // text returned to the model
     Untrusted bool   // came from outside the owner and Kest: wrapped as data, taints the turn
     Summary   string // short line for the audit log
+    Image     *Image // pixels for this turn's model input (untrusted, never stored)
 }
 ```
 
@@ -113,7 +123,7 @@ Tools are exposed to the model as `plugin__tool` (function names cannot contain 
 
 ## Tool routing
 
-Every tool definition costs tokens on every model call, and models choose worse from long lists. Up to 24 tools, all are shown. Beyond that, `internal/agent/router.go` shows the `memory` and `coach` tools plus the 14 best matches for the owner's message. Matching is plain word overlap (lower-cased, crudely stemmed) between the message and each tool's plugin id, name and description; name matches count triple. There is no model call, so it adds no cost or latency, and the same message always selects the same tools.
+Every tool definition costs tokens on every model call, and models choose worse from long lists. Up to 24 tools, all are shown. Beyond that, `internal/agent/router.go` shows the `memory`, `coach` and `browser` tools (the browser is needed for follow-ups such as "scroll down", whatever the message says) plus the 14 best matches for the owner's message. Matching is plain word overlap (lower-cased, crudely stemmed) between the message and each tool's plugin id, name and description; name matches count triple. There is no model call, so it adds no cost or latency, and the same message always selects the same tools.
 
 The trade-off is that a tool the message never hints at is hidden for that turn. Write tool descriptions with the words an owner would use ("email", "note", "calendar"), not only internal terms. A hidden tool that the model calls anyway still runs, under the usual policy.
 
@@ -129,6 +139,10 @@ outbound     (Tool.Outbound) treated as destructive whatever Risk says
 ```
 
 "Ask" means an approval message in Telegram showing the exact arguments with **Go ahead** and **Skip** buttons. The turn waits (two minutes by default). No answer, a late press, a forged id or a restart all mean the action does not run.
+
+### Task grants
+
+A multi-step job such as browsing would otherwise need a tap per step. A tool marked `Grantable` makes its prompt offer a third button, **Allow for this task**. Pressing it approves that call and, for the rest of the same turn only, the plugin's other grantable tools, except where `GrantCovers` says a particular call is outside what the owner saw. The plugin decides what a grant cannot reach (the browser stops at purchases, credentials, other websites and anything addressed by a raw selector). A grant never applies to a tool that is not `Grantable`, never outlives the turn, and a `RiskDestructive` tool cannot be `Grantable`. Taint still applies: a grant only removes the prompts, it does not make page content trusted.
 
 Plugins cannot lower their own risk at runtime, and the risk in the manifest is checked against the code at load.
 

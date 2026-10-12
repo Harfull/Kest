@@ -118,20 +118,25 @@ func approvalPrompt(p agent.Prompt) string {
 	if p.Reason != "" {
 		fmt.Fprintf(&b, "I'm asking because %s.\n", p.Reason)
 	}
-	b.WriteString("Go ahead?")
+	if p.Grantable {
+		b.WriteString("Go ahead? \"Allow for this task\" also covers further steps on the same site until I reply.")
+	} else {
+		b.WriteString("Go ahead?")
+	}
 	return b.String()
 }
 
 // askOwner shows an approval prompt with Go ahead and Skip buttons.
 func (c *chat) askOwner(ctx context.Context, p agent.Prompt) (int, error) {
-	return c.tr.Send(ctx, telegram.Reply{
-		ChatID: c.ownerChat,
-		Text:   approvalPrompt(p),
-		Buttons: [][]telegram.Button{{
-			{Label: "Go ahead", Data: agent.ApproveData + p.ID},
-			{Label: "Skip", Data: agent.DeclineData + p.ID},
-		}},
-	})
+	buttons := [][]telegram.Button{{
+		{Label: "Go ahead", Data: agent.ApproveData + p.ID},
+		{Label: "Skip", Data: agent.DeclineData + p.ID},
+	}}
+	if p.Grantable {
+		// A second row keeps the usual two choices where the thumb expects them.
+		buttons = append(buttons, []telegram.Button{{Label: "Allow for this task", Data: agent.TaskData + p.ID}})
+	}
+	return c.tr.Send(ctx, telegram.Reply{ChatID: c.ownerChat, Text: approvalPrompt(p), Buttons: buttons})
 }
 
 // settled removes the buttons once a prompt is decided, and says so when it
@@ -146,7 +151,13 @@ func (c *chat) settled(ctx context.Context, msgID int, outcome string) {
 // notify sends a plugin notification to the owner.
 func (c *chat) notify(ctx context.Context, n plugin.Notification) error {
 	if c.agent.Locked() {
+		if len(n.Photo) > 0 {
+			return errors.New("lockdown is on; screenshot was not sent")
+		}
 		return nil // lockdown silences unprompted messages
+	}
+	if len(n.Photo) > 0 {
+		return c.tr.SendPhoto(ctx, c.ownerChat, n.Photo, n.Text)
 	}
 	_, err := c.tr.Send(ctx, telegram.Reply{ChatID: c.ownerChat, Text: n.Text})
 	return err

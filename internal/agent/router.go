@@ -19,8 +19,10 @@ const (
 )
 
 // alwaysOn are the plugins whose tools are sent on every turn: what Kest
-// remembers about the owner, and the coaching tools the daily rhythm depends on.
-func alwaysOn(pluginID string) bool { return pluginID == "memory" || pluginID == "coach" }
+// remembers about the owner, coaching, and the browser needed for follow-ups.
+func alwaysOn(pluginID string) bool {
+	return pluginID == "memory" || pluginID == "coach" || pluginID == "browser"
+}
 
 // routeTools returns the tools to show the model for a message. It is
 // deterministic and makes no model call: it scores each tool by how many words

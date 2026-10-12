@@ -19,6 +19,7 @@ import (
 	"github.com/Harfull/Kest/internal/audit"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/coach"
+	"github.com/Harfull/Kest/internal/coach/messages"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
@@ -198,9 +199,14 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
+	c.messageSet, err = messages.Load()
+	if err != nil {
+		return err
+	}
 	c.agent = agent.New(agent.Options{
 		Chat: client, Store: db, Tools: reg, Confirm: conf, Clock: a.clock, Loc: a.loc, Log: a.log,
 		Extra: c.coach.Tools(), Context: c.coach.PromptContext,
+		Progress: c.browserProgress,
 	})
 
 	m := &maintenance{db: db, dir: a.cfg.DataDir, clock: a.clock, log: a.log, summarize: c.agent.Summarize}

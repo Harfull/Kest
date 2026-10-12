@@ -71,6 +71,16 @@ type Result struct {
 	Untrusted bool
 	// Summary is a short human-readable line for the audit log.
 	Summary string
+	// Image supplies pixels for this turn's model input. Images are always
+	// treated as untrusted data, and the turn is tainted like any other
+	// untrusted result.
+	Image *Image
+}
+
+// Image is an in-memory PNG or JPEG, never a URL or an arbitrary file path.
+type Image struct {
+	MediaType string
+	Data      []byte
 }
 
 // Tool is one capability a plugin offers the model.
@@ -89,6 +99,18 @@ type Tool struct {
 	// Describe renders the arguments for a confirmation prompt. Optional; a
 	// generic rendering is used when nil.
 	Describe func(args json.RawMessage) string
+	// AskReason completes "I am asking because ..." in the approval prompt, in
+	// place of the generic reason. Optional.
+	AskReason string
+	// Grantable lets the owner approve this plugin's grantable tools for the
+	// rest of one conversation turn with a single "Allow for this task" press,
+	// so a multi-step job such as browsing does not need a tap per step. A grant
+	// never outlives the turn and never covers tools that are not Grantable.
+	Grantable bool
+	// GrantCovers narrows a grant: it reports whether this particular call is
+	// still covered by one, for example because it stays on the same website.
+	// Optional; nil means every call to a grantable tool is covered.
+	GrantCovers func(ctx context.Context, args json.RawMessage) bool
 	// Handler runs the tool.
 	Handler func(ctx context.Context, call Call) (Result, error)
 }
@@ -119,6 +141,9 @@ func (t Tool) Validate() error {
 	if t.Risk < RiskRead || t.Risk > RiskDestructive {
 		return fmt.Errorf("tool %s: invalid risk", t.Name)
 	}
+	if t.Grantable && t.Risk == RiskDestructive {
+		return fmt.Errorf("tool %s: a destructive tool cannot be granted for a task", t.Name)
+	}
 	return nil
 }
 
@@ -132,6 +157,13 @@ type Plugin interface {
 	Tools() []Tool
 	// Close releases resources.
 	Close(ctx context.Context) error
+}
+
+// Prompter is implemented by plugins that need to tell the model how to use
+// their tools well. The text is added to the system prompt and must be trusted,
+// constant guidance, never content fetched from outside.
+type Prompter interface {
+	PromptHint() string
 }
 
 // JobProvider is implemented by plugins that schedule work. Each job name is

@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,14 @@ type Message struct {
 	Content    string
 	ToolCalls  []ToolCall // set on assistant messages that request tools
 	ToolCallID string     // set on tool messages, matching ToolCall.ID
+	// Images supplies untrusted image input on user messages, only for this turn.
+	Images []Image
+}
+
+// Image is a bounded in-memory PNG or JPEG sent to a vision-capable model.
+type Image struct {
+	MediaType string
+	Data      []byte
 }
 
 // MarshalJSON sends null content for tool-calling assistant messages, which is
@@ -28,13 +37,26 @@ type Message struct {
 func (m Message) MarshalJSON() ([]byte, error) {
 	type wire struct {
 		Role       string     `json:"role"`
-		Content    *string    `json:"content"`
+		Content    any        `json:"content"`
 		ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
 		ToolCallID string     `json:"tool_call_id,omitempty"`
 	}
 	w := wire{Role: m.Role, ToolCalls: m.ToolCalls, ToolCallID: m.ToolCallID}
 	if m.Content != "" || len(m.ToolCalls) == 0 {
-		w.Content = &m.Content
+		w.Content = m.Content
+	}
+	if len(m.Images) > 0 {
+		if m.Role != RoleUser {
+			return nil, errors.New("image input requires a user message")
+		}
+		parts := []map[string]any{{"type": "text", "text": m.Content}}
+		for _, im := range m.Images {
+			if (im.MediaType != "image/png" && im.MediaType != "image/jpeg") || len(im.Data) == 0 || len(im.Data) > 10<<20 {
+				return nil, errors.New("invalid or oversized image input")
+			}
+			parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]string{"url": "data:" + im.MediaType + ";base64," + base64.StdEncoding.EncodeToString(im.Data), "detail": "auto"}})
+		}
+		w.Content = parts
 	}
 	return json.Marshal(w)
 }

@@ -41,6 +41,9 @@ type Host interface {
 // Notification is an unsolicited message to the owner.
 type Notification struct {
 	Text string
+	// Photo is an optional in-memory image sent only to the configured owner.
+	// Text becomes its caption. Tools producing photos must declare Outbound.
+	Photo []byte
 	// Urgent bypasses quiet-hour silencing. Use only for things the owner asked
 	// to be told about at a specific time, such as a reminder.
 	Urgent bool

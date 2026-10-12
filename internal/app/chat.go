@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/Harfull/Kest/internal/audit"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/coach"
+	"github.com/Harfull/Kest/internal/coach/messages"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
@@ -34,6 +36,12 @@ const (
 	maxVoiceDownload = 20 << 20
 	// confirmTTL is how long an inline confirmation stays valid.
 	confirmTTL = 10 * time.Minute
+	// typingEvery refreshes the typing indicator, which Telegram clears after
+	// about five seconds.
+	typingEvery = 4 * time.Second
+	// slowReply is how long a turn takes before its answer is threaded under the
+	// owner's message, so it is clear what it answers.
+	slowReply = 20 * time.Second
 )
 
 // chat turns Telegram updates into conversation turns and commands.
@@ -50,11 +58,12 @@ type chat struct {
 	budget  *llm.Budget
 	started time.Time
 
-	ownerChat int64 // where approvals and plugin notifications go
-	confirm   *agent.Confirmations
-	coach     *coach.Coach
-	audit     *audit.Log
-	registry  *plugin.Registry
+	ownerChat  int64 // where approvals and plugin notifications go
+	confirm    *agent.Confirmations
+	coach      *coach.Coach
+	audit      *audit.Log
+	registry   *plugin.Registry
+	messageSet *messages.Set
 
 	// queue serializes conversation turns so history stays in order, while
 	// commands and button presses are handled immediately.
@@ -71,8 +80,8 @@ func (c *chat) handle(ctx context.Context, u telegram.Update) {
 		c.command(ctx, u)
 	case u.Voice != nil:
 		c.enqueue(ctx, u.ChatID, func(ctx context.Context) { c.voiceTurn(ctx, u) })
-	case u.Text != "":
-		c.enqueue(ctx, u.ChatID, func(ctx context.Context) { c.textTurn(ctx, u.ChatID, u.Text, false) })
+	case u.Text != "" || u.Photo != nil:
+		c.enqueue(ctx, u.ChatID, func(ctx context.Context) { c.textTurn(ctx, u, u.Text, false) })
 	}
 }
 
@@ -109,21 +118,28 @@ func (c *chat) enqueue(ctx context.Context, chatID int64, job func(context.Conte
 
 // say sends a plain reply and logs failures.
 func (c *chat) say(ctx context.Context, chatID int64, text string) {
-	if _, err := c.tr.Send(ctx, telegram.Reply{ChatID: chatID, Text: text}); err != nil {
+	c.sayTo(ctx, chatID, text, 0)
+}
+
+// sayTo is say, threaded under an earlier message when replyTo is not zero.
+func (c *chat) sayTo(ctx context.Context, chatID int64, text string, replyTo int) {
+	if _, err := c.tr.Send(ctx, telegram.Reply{ChatID: chatID, Text: text, ReplyTo: replyTo}); err != nil {
 		c.log.ErrorContext(ctx, "send reply", "err", err)
 	}
 }
 
 // textTurn answers one message. viaVoice makes the reply a voice note when it
-// is short enough.
-func (c *chat) textTurn(ctx context.Context, chatID int64, text string, viaVoice bool) {
-	if err := c.tr.Typing(ctx, chatID, false); err != nil {
-		c.log.DebugContext(ctx, "typing indicator failed", "err", err)
-	}
+// is short enough. u carries what Telegram attached: a photo, or the message
+// being replied to.
+func (c *chat) textTurn(ctx context.Context, u telegram.Update, text string, viaVoice bool) {
+	chatID := u.ChatID
+	started := c.clock.Now()
+	stop := c.keepTyping(ctx, chatID)
+	defer stop()
 
-	c.coach.NoteMessage(ctx, text, c.clock.Now())
+	c.coach.NoteMessage(ctx, text, started)
 
-	reply, err := c.agent.Reply(ctx, text)
+	reply, err := c.agent.ReplyTo(ctx, c.message(ctx, u, text))
 	if err != nil {
 		c.log.ErrorContext(ctx, "conversation turn failed", "err", err)
 		if reply == "" {
@@ -138,7 +154,97 @@ func (c *chat) textTurn(ctx context.Context, chatID int64, text string, viaVoice
 			return
 		}
 	}
-	c.say(ctx, chatID, reply)
+	c.sayTo(ctx, chatID, reply, c.threadTo(u, started))
+}
+
+// threadTo says which message a reply should be threaded under, or 0 for a
+// plain message. Quick back-and-forth reads best without threading; it helps
+// when the owner replied to something specific, when the answer took a while
+// and they may have moved on, and when more messages are waiting behind it.
+func (c *chat) threadTo(u telegram.Update, started time.Time) int {
+	if u.MessageID == 0 {
+		return 0
+	}
+	if u.ReplyTo != nil || c.clock.Now().Sub(started) > slowReply || len(c.queue) > 0 {
+		return u.MessageID
+	}
+	return 0
+}
+
+// message builds what the agent sees: the owner's words, the message they
+// replied to, and any photos, all within the turn.
+func (c *chat) message(ctx context.Context, u telegram.Update, text string) agent.Message {
+	m := agent.Message{Text: text}
+	if q := u.ReplyTo; q != nil {
+		who := agent.QuoteOwner
+		switch {
+		case q.Forwarded:
+			who = agent.QuoteForwarded
+		case q.FromBot:
+			who = agent.QuoteKest
+		}
+		m.Quote = &agent.Quote{From: who, Text: q.Text}
+		if q.Photo != nil && !q.Forwarded {
+			if im, ok := c.fetchImage(ctx, q.Photo); ok {
+				m.Images = append(m.Images, im)
+				if m.Quote.Text == "" {
+					m.Quote.Text = "(a photo, attached)"
+				}
+			}
+		}
+	}
+	if u.Photo != nil {
+		if im, ok := c.fetchImage(ctx, u.Photo); ok {
+			m.Images = append(m.Images, im)
+			if strings.TrimSpace(m.Text) == "" {
+				m.Text = "(the owner sent a photo)"
+			}
+		} else {
+			m.Text = strings.TrimSpace(m.Text + " (a photo was attached but could not be loaded)")
+		}
+	}
+	return m
+}
+
+// fetchImage downloads a Telegram photo for the model. It reports false rather
+// than failing the turn, because the owner's words are still worth answering.
+func (c *chat) fetchImage(ctx context.Context, p *telegram.Photo) (llm.Image, bool) {
+	data, err := c.tr.Download(ctx, p.FileID)
+	if err != nil {
+		c.log.WarnContext(ctx, "download photo", "err", err)
+		return llm.Image{}, false
+	}
+	media := http.DetectContentType(data)
+	if media != "image/jpeg" && media != "image/png" {
+		c.log.WarnContext(ctx, "photo is not a supported image type", "type", media)
+		return llm.Image{}, false
+	}
+	return llm.Image{MediaType: media, Data: data}, true
+}
+
+// keepTyping shows "typing" for as long as a turn runs. Telegram clears the
+// indicator after about five seconds, and a task with several browser steps
+// takes longer than that, which otherwise looks like Kest has gone quiet.
+func (c *chat) keepTyping(ctx context.Context, chatID int64) (stop func()) {
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() { // owned by this turn: it ends when stop is called or ctx is cancelled
+		defer close(done)
+		defer func() { _ = recover() }()
+		t := time.NewTicker(typingEvery)
+		defer t.Stop()
+		for {
+			if err := c.tr.Typing(ctx, chatID, false); err != nil {
+				c.log.DebugContext(ctx, "typing indicator failed", "err", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}()
+	return func() { cancel(); <-done }
 }
 
 // sendVoice synthesizes and sends reply, reporting whether it was delivered so
@@ -196,7 +302,7 @@ func (c *chat) voiceTurn(ctx context.Context, u telegram.Update) {
 		c.say(ctx, u.ChatID, msgNoVoice)
 		return
 	}
-	c.textTurn(ctx, u.ChatID, text, true)
+	c.textTurn(ctx, u, text, true)
 }
 
 // voiceFormat maps a MIME type to the audio format name the API expects.
@@ -321,8 +427,8 @@ func (c *chat) callback(ctx context.Context, u telegram.Update) {
 		}
 	}
 
-	if id, approve, ok := agent.ParseDecision(cb.Data); ok {
-		c.decide(ctx, ack, id, approve)
+	if id, choice, ok := agent.ParseChoice(cb.Data); ok {
+		c.decide(ctx, ack, id, choice)
 		return
 	}
 
@@ -386,14 +492,17 @@ func parseForget(data string) (choice string, stamp int64, ok bool) {
 }
 
 // decide handles an approval button press.
-func (c *chat) decide(ctx context.Context, ack func(string), id string, approve bool) {
-	if !c.confirm.Resolve(ctx, id, approve) {
+func (c *chat) decide(ctx context.Context, ack func(string), id string, choice agent.Choice) {
+	if !c.confirm.ResolveChoice(ctx, id, choice) {
 		ack("That one has expired.")
 		return
 	}
-	if approve {
+	switch choice {
+	case agent.Task:
+		ack("Allowed for this task")
+	case agent.Once:
 		ack("Going ahead")
-	} else {
+	default:
 		ack("Skipped")
 	}
 }
