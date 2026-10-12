@@ -68,7 +68,7 @@ func TestRedactsConfiguredSecretsAnywhere(t *testing.T) {
 	log.Info("connecting with "+secret,
 		"url", "https://x.test/?key="+secret,
 		"err", errors.New("rejected "+secret),
-		slog.Group("req", slog.String("auth", secret)),
+		slog.Group("req", "auth", secret),
 	)
 	log.With("token", secret).Info("with attrs")
 
