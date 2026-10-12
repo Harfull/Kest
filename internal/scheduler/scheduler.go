@@ -540,3 +540,23 @@ func (s *Scheduler) Ensure(ctx context.Context, spec Spec) (bool, error) {
 	}
 	return true, nil
 }
+
+// ListOwned returns the scheduled jobs belonging to owner, in run order.
+func (s *Scheduler) ListOwned(ctx context.Context, owner string) ([]Job, error) {
+	rows, err := s.db.Read().QueryContext(ctx,
+		jobSelect+" WHERE owner = ? AND state = 'scheduled' ORDER BY next_run_at, id", owner)
+	if err != nil {
+		return nil, fmt.Errorf("list jobs for %s: %w", owner, err)
+	}
+	defer rows.Close() //nolint:errcheck // surfaced via rows.Err
+
+	var out []Job
+	for rows.Next() {
+		j, err := scanJob(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, j)
+	}
+	return out, rows.Err()
+}

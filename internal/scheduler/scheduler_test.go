@@ -425,3 +425,25 @@ func TestEnsureIsIdempotent(t *testing.T) {
 		t.Errorf("jobs = %d, want 1", len(jobs))
 	}
 }
+
+func TestListOwned(t *testing.T) {
+	r := newRig(t, base)
+	ctx := context.Background()
+	for _, spec := range []Spec{
+		{Owner: "plugin:a", Name: "a/x", At: base.Add(2 * time.Hour)},
+		{Owner: "plugin:a", Name: "a/y", At: base.Add(time.Hour)},
+		{Owner: "plugin:b", Name: "b/x", At: base.Add(time.Minute)},
+	} {
+		if _, err := r.s.Schedule(ctx, spec); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := r.s.ListOwned(ctx, "plugin:a")
+	if err != nil || len(got) != 2 || got[0].Name != "a/y" || got[1].Name != "a/x" {
+		t.Errorf("ListOwned(a) = %+v, %v; want a's two jobs in run order and none of b's", got, err)
+	}
+	if none, _ := r.s.ListOwned(ctx, "plugin:zzz"); len(none) != 0 {
+		t.Errorf("ListOwned(unknown) = %v", none)
+	}
+}

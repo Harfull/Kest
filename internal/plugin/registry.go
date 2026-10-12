@@ -302,3 +302,12 @@ func (h *host) Notify(ctx context.Context, n Notification) error {
 	}
 	return h.r.d.Notifier(ctx, n)
 }
+
+// Fail records that a plugin could not be loaded for a reason found before a
+// Factory ran, such as an id that no built-in plugin provides.
+func (r *Registry) Fail(id string, err error) {
+	r.mu.Lock()
+	r.statuses = append(r.statuses, Status{ID: id, Err: err})
+	r.mu.Unlock()
+	r.d.Log.Warn("plugin disabled", "plugin", id, "err", err)
+}

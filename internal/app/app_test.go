@@ -47,6 +47,36 @@ type fakeRouter struct {
 	speechStatus atomic.Int32 // non-zero: speech returns this error status
 	transcript   atomic.Value // string
 	chats        atomic.Int32
+	script       atomic.Value // func(chatRequest) string: the assistant message as JSON
+}
+
+// chatRequest is the part of a chat completion request the fake inspects.
+type chatRequest struct {
+	Messages []struct {
+		Role       string `json:"role"`
+		Content    string `json:"content"`
+		ToolCallID string `json:"tool_call_id"`
+	} `json:"messages"`
+	Tools []json.RawMessage `json:"tools"`
+}
+
+// lastRole returns the content of the last message and its role.
+func (r chatRequest) last() (role, content string) {
+	m := r.Messages[len(r.Messages)-1]
+	return m.Role, m.Content
+}
+
+// textMessage and toolCallMessage build assistant messages for a script.
+func textMessage(s string) string {
+	b, _ := json.Marshal(map[string]any{"role": "assistant", "content": s})
+	return string(b)
+}
+
+func toolCallMessage(id, name, args string) string {
+	b, _ := json.Marshal(map[string]any{"role": "assistant", "content": nil, "tool_calls": []any{
+		map[string]any{"id": id, "type": "function", "function": map[string]any{"name": name, "arguments": args}},
+	}})
+	return string(b)
 }
 
 func (f *fakeRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -66,14 +96,15 @@ func (f *fakeRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if fail(f.chatStatus.Load()) {
 			return
 		}
-		var req struct {
-			Messages []struct{ Role, Content string } `json:"messages"`
-		}
+		var req chatRequest
 		_ = json.Unmarshal(body, &req)
-		last := req.Messages[len(req.Messages)-1].Content
-		reply, _ := json.Marshal("Noted: " + last)
-		_, _ = fmt.Fprintf(w, `{"id":"g1","model":"m","choices":[{"finish_reason":"stop","message":{"role":"assistant","content":%s}}],`+
-			`"usage":{"prompt_tokens":5,"completion_tokens":3,"total_tokens":8,"cost":0.01}}`, reply)
+		_, last := req.last()
+		msg := textMessage("Noted: " + last)
+		if fn, ok := f.script.Load().(func(chatRequest) string); ok {
+			msg = fn(req)
+		}
+		_, _ = fmt.Fprintf(w, `{"id":"g1","model":"m","choices":[{"finish_reason":"stop","message":%s}],`+
+			`"usage":{"prompt_tokens":5,"completion_tokens":3,"total_tokens":8,"cost":0.01}}`, msg)
 	case "/audio/transcriptions":
 		text, _ := f.transcript.Load().(string)
 		out, _ := json.Marshal(map[string]any{"text": text, "usage": map[string]any{"cost": 0.001}})
@@ -102,7 +133,10 @@ type env struct {
 var epoch = time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)
 
 // start launches a full App against a fake OpenRouter and a fake Telegram.
-func start(t *testing.T) *env {
+func start(t *testing.T) *env { return startWith(t, nil) }
+
+// startWith is start with a hook to adjust the config and extra options.
+func startWith(t *testing.T, mutate func(*config.Config), opts ...Option) *env {
 	t.Helper()
 
 	router := &fakeRouter{}
@@ -117,6 +151,9 @@ func start(t *testing.T) *env {
 	cfg.Telegram.OwnerIDs = []int64{1}
 	cfg.LLM.APIKey = "key"
 	cfg.LLM.BaseURL = srv.URL
+	if mutate != nil {
+		mutate(&cfg)
+	}
 
 	e := &env{
 		fake:   telegram.NewFake(),
@@ -128,7 +165,8 @@ func start(t *testing.T) *env {
 	}
 	log := slog.New(slog.NewTextHandler(e.log, nil))
 
-	a, err := New(cfg, log, WithTransport(e.fake), WithClock(e.clk))
+	all := append([]Option{WithTransport(e.fake), WithClock(e.clk)}, opts...)
+	a, err := New(cfg, log, all...)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}

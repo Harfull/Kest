@@ -30,6 +30,8 @@ type maintenance struct {
 	dir   string
 	clock clock.Clock
 	log   *slog.Logger
+	// summarize condenses old conversation turns; optional.
+	summarize func(ctx context.Context) (bool, error)
 }
 
 func (m *maintenance) run(ctx context.Context, _ scheduler.Job) error {
@@ -49,10 +51,19 @@ func (m *maintenance) run(ctx context.Context, _ scheduler.Job) error {
 		return err
 	}
 
+	// Summarize before pruning, so a turn is condensed before it is deleted.
+	if m.summarize != nil {
+		// A failed summary (a spent budget, say) must not fail the backup.
+		if _, err := m.summarize(ctx); err != nil {
+			m.log.WarnContext(ctx, "summarize conversation", "err", err)
+		}
+	}
+
 	n, err := m.db.PruneMessages(ctx, m.clock.Now().Add(-messageRetention))
 	if err != nil {
 		return err
 	}
+
 	m.log.InfoContext(ctx, "maintenance finished", "backup", name, "messages_pruned", n)
 	return nil
 }

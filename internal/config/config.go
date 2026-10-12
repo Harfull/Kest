@@ -41,6 +41,12 @@ type Config struct {
 	Telegram TelegramConfig `toml:"telegram"`
 	LLM      LLMConfig      `toml:"llm"`
 	Coach    CoachConfig    `toml:"coach"`
+
+	// EnabledPlugins lists the built-in plugins to load, by id.
+	EnabledPlugins []string `toml:"enabled_plugins"`
+	// Plugins holds each plugin's settings under [plugins.<id>]. They are
+	// validated against the plugin manifest when it loads.
+	Plugins map[string]map[string]any `toml:"plugins"`
 }
 
 // LogConfig controls logging output.
@@ -112,6 +118,7 @@ func Defaults() Config {
 			TTSVoice:       "alloy",
 			DailyBudgetUSD: 1.00,
 		},
+		EnabledPlugins: []string{"reminders", "tasks", "webfetch"},
 		Coach: CoachConfig{
 			MaxProactivePerDay: 3,
 			QuietStart:         "23:00",

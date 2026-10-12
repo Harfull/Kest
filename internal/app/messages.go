@@ -13,7 +13,7 @@ const (
 		"/export  get a copy of your data\n" +
 		"/forget  delete our conversation history\n" +
 		"/help    this list\n\n" +
-		"Habits, reminders and connected services are coming next."
+		"I can also set reminders, keep a task list, read a web page for you and remember things about you. Just ask."
 
 	msgModelDown = "I couldn't reach my language model just now. Try again in a minute; your message is saved."
 
@@ -35,6 +35,8 @@ const (
 	msgForgetExpired = "That confirmation has expired. Send /forget again if you still want to."
 
 	msgExportFailed = "I couldn't prepare your export. Please try again in a moment."
+
+	msgApprovalTimedOut = "I did not hear back, so I skipped that. Ask again if you still want it."
 
 	msgGenericFail = "Something went wrong on my side. Please try again."
 )

@@ -149,6 +149,16 @@
             "field_type": "text"
         },
         {
+            "name": "Plugins",
+            "description": "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch.",
+            "env_variable": "KEST_PLUGINS",
+            "default_value": "reminders,tasks,webfetch",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:256",
+            "field_type": "text"
+        },
+        {
             "name": "Log Level",
             "description": "debug, info, warn or error.",
             "env_variable": "KEST_LOG_LEVEL",

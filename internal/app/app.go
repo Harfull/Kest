@@ -19,10 +19,12 @@ import (
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
+	"github.com/Harfull/Kest/internal/plugin"
 	"github.com/Harfull/Kest/internal/scheduler"
 	"github.com/Harfull/Kest/internal/store"
 	"github.com/Harfull/Kest/internal/telegram"
 	"github.com/Harfull/Kest/internal/version"
+	"github.com/Harfull/Kest/plugins/all"
 )
 
 // ReadyMessage is logged once startup has finished. The Pterodactyl egg
@@ -41,6 +43,9 @@ type App struct {
 	loc   *time.Location
 
 	transport telegram.Transport // injected in tests; built from config otherwise
+	factories map[string]plugin.Factory
+	lookupEnv func(string) (string, bool)
+	approval  time.Duration
 }
 
 // Option customizes an App, mainly for tests.
@@ -48,6 +53,16 @@ type Option func(*App)
 
 // WithTransport replaces the Telegram connection.
 func WithTransport(t telegram.Transport) Option { return func(a *App) { a.transport = t } }
+
+// WithPlugins replaces the built-in plugin set. Tests use it to load fakes.
+func WithPlugins(f map[string]plugin.Factory) Option { return func(a *App) { a.factories = f } }
+
+// WithEnv replaces os.LookupEnv for plugin secrets.
+func WithEnv(lookup func(string) (string, bool)) Option { return func(a *App) { a.lookupEnv = lookup } }
+
+// WithApprovalTimeout sets how long a turn waits for the owner to answer an
+// approval prompt. Tests shorten it.
+func WithApprovalTimeout(d time.Duration) Option { return func(a *App) { a.approval = d } }
 
 // WithClock replaces the system clock.
 func WithClock(c clock.Clock) Option { return func(a *App) { a.clock = c } }
@@ -62,7 +77,10 @@ func New(cfg config.Config, log *slog.Logger, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("load timezone %q: %w", cfg.Timezone, err)
 	}
 
-	a := &App{cfg: cfg, log: log, clock: clock.Real{}, loc: loc}
+	a := &App{
+		cfg: cfg, log: log, clock: clock.Real{}, loc: loc,
+		factories: all.All(), lookupEnv: os.LookupEnv, approval: confirmTimeout,
+	}
 	for _, o := range opts {
 		o(a)
 	}
@@ -123,9 +141,60 @@ func (a *App) Run(ctx context.Context) error {
 		}
 	}
 
+	// Nothing is waiting for an answer after a restart, so old approvals die.
+	if n, err := db.CancelAllPending(ctx); err != nil {
+		return fmt.Errorf("clear stale approvals: %w", err)
+	} else if n > 0 {
+		a.log.InfoContext(ctx, "cancelled approvals left over from a previous run", "count", n)
+	}
+
 	sch := scheduler.New(db, a.clock, a.log, scheduler.Options{})
-	m := &maintenance{db: db, dir: a.cfg.DataDir, clock: a.clock, log: a.log}
+
+	c := &chat{
+		cfg:       a.cfg,
+		log:       a.log,
+		clock:     a.clock,
+		loc:       a.loc,
+		tr:        tr,
+		llm:       client,
+		db:        db,
+		sched:     sch,
+		budget:    budget,
+		started:   a.clock.Now(),
+		ownerChat: a.cfg.Telegram.OwnerIDs[0],
+		queue:     make(chan func(context.Context), queueSize),
+	}
+
+	conf := agent.NewConfirmations(db, a.clock, a.approval)
+	conf.Ask, conf.Settled = c.askOwner, c.settled
+	c.confirm = conf
+
+	reg := plugin.NewRegistry(plugin.Deps{
+		Log:      a.log,
+		Clock:    a.clock,
+		Loc:      a.loc,
+		KV:       func(id string) plugin.KV { return kvAdapter{db.KV(id, a.clock.Now)} },
+		Jobs:     func(id string) plugin.Jobs { return jobsAdapter{s: sch, id: id, zone: a.cfg.Timezone} },
+		Notifier: c.notify,
+		Secret:   func(name string) (string, bool) { return a.lookupEnv(secretPrefix + name) },
+	})
+	a.loadPlugins(ctx, reg)
+	defer func() {
+		if err := reg.Close(context.WithoutCancel(ctx)); err != nil {
+			a.log.ErrorContext(ctx, "close plugins", "err", err)
+		}
+	}()
+	c.registry = reg
+
+	c.agent = agent.New(agent.Options{
+		Chat: client, Store: db, Tools: reg, Confirm: conf, Clock: a.clock, Loc: a.loc, Log: a.log,
+	})
+
+	m := &maintenance{db: db, dir: a.cfg.DataDir, clock: a.clock, log: a.log, summarize: c.agent.Summarize}
 	sch.Register(maintenanceJob, m.run)
+	for name, fn := range reg.JobHandlers() {
+		sch.Register(name, func(ctx context.Context, j scheduler.Job) error { return fn(ctx, j.Payload) })
+	}
 	if _, err := sch.Ensure(ctx, scheduler.Spec{
 		Owner:   "system",
 		Name:    maintenanceJob,
@@ -134,21 +203,6 @@ func (a *App) Run(ctx context.Context) error {
 		Misfire: scheduler.MisfireSkip,
 	}); err != nil {
 		return fmt.Errorf("schedule maintenance: %w", err)
-	}
-
-	c := &chat{
-		cfg:     a.cfg,
-		log:     a.log,
-		clock:   a.clock,
-		loc:     a.loc,
-		tr:      tr,
-		agent:   agent.New(agent.Options{Chat: client, Store: db, Clock: a.clock, Loc: a.loc, Log: a.log}),
-		llm:     client,
-		db:      db,
-		sched:   sch,
-		budget:  budget,
-		started: a.clock.Now(),
-		queue:   make(chan func(context.Context), queueSize),
 	}
 
 	if err := tr.SetCommands(ctx, commandMenu); err != nil {
@@ -196,4 +250,18 @@ func (a *App) Run(ctx context.Context) error {
 		failures = append(failures, err)
 	}
 	return errors.Join(failures...)
+}
+
+// loadPlugins loads every enabled plugin. A plugin that fails is skipped and
+// reported by /status; the others keep working.
+func (a *App) loadPlugins(ctx context.Context, reg *plugin.Registry) {
+	for _, id := range a.cfg.EnabledPlugins {
+		f, ok := a.factories[id]
+		if !ok {
+			reg.Fail(id, fmt.Errorf("no built-in plugin named %q", id))
+			continue
+		}
+		// Failures are recorded in the registry's status and logged there.
+		_ = reg.Load(ctx, id, f, a.cfg.Plugins[id])
+	}
 }

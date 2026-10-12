@@ -259,6 +259,16 @@ func build(script string) egg {
 				FieldType:    "text",
 			},
 			{
+				Name:         "Plugins",
+				Description:  "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch.",
+				EnvVariable:  "KEST_PLUGINS",
+				DefaultValue: "reminders,tasks,webfetch",
+				UserViewable: true,
+				UserEditable: true,
+				Rules:        "required|string|max:256",
+				FieldType:    "text",
+			},
+			{
 				Name:         "Log Level",
 				Description:  "debug, info, warn or error.",
 				EnvVariable:  "KEST_LOG_LEVEL",

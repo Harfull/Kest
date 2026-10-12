@@ -30,7 +30,7 @@ func TestEnvExampleListsEveryVariable(t *testing.T) {
 		envConfig, envDataDir, envTimezone, envLogLevel, envLogFormat, envLogSensitive,
 		envTelegramToken, envOwnerID, envOpenRouterKey, envOpenRouterURL,
 		envModelGeneral, envModelFallbacks, envModelTranscr, envModelTTS, envTTSVoice,
-		envDailyBudget, envZDROnly, envMaxProactive, envQuietStart, envQuietEnd,
+		envDailyBudget, envZDROnly, envMaxProactive, envQuietStart, envQuietEnd, envPlugins,
 	} {
 		if !regexp.MustCompile(`(?m)^#?\s*` + regexp.QuoteMeta(name) + `=`).MatchString(example) {
 			t.Errorf(".env.example is missing %s", name)
@@ -49,7 +49,7 @@ func TestEggVariablesMatchConfig(t *testing.T) {
 		envDataDir: true, envTimezone: true, envLogLevel: true,
 		envTelegramToken: true, envOwnerID: true, envOpenRouterKey: true,
 		envModelGeneral: true, envModelFallbacks: true, envModelTranscr: true,
-		envModelTTS: true, envTTSVoice: true, envDailyBudget: true, envMaxProactive: true,
+		envModelTTS: true, envTTSVoice: true, envDailyBudget: true, envMaxProactive: true, envPlugins: true,
 		"KEST_VERSION": true, // read by the installer, not by the binary
 	}
 

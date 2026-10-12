@@ -32,6 +32,7 @@ const (
 	envMaxProactive   = "KEST_MAX_PROACTIVE_PER_DAY"
 	envQuietStart     = "KEST_QUIET_START"
 	envQuietEnd       = "KEST_QUIET_END"
+	envPlugins        = "KEST_PLUGINS"
 )
 
 // LookupFunc reads an environment variable. os.LookupEnv satisfies it.
@@ -109,6 +110,9 @@ func applyEnv(cfg *Config, lookup LookupFunc) error {
 		} else {
 			cfg.Coach.MaxProactivePerDay = n
 		}
+	}
+	if v, ok := get(envPlugins); ok {
+		cfg.EnabledPlugins = splitList(v)
 	}
 	str(envQuietStart, &cfg.Coach.QuietStart)
 	str(envQuietEnd, &cfg.Coach.QuietEnd)

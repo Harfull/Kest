@@ -78,5 +78,18 @@ func (c Config) Validate() error {
 		}
 	}
 
+	seenPlugin := map[string]bool{}
+	for _, id := range c.EnabledPlugins {
+		if seenPlugin[id] {
+			add("plugin %q is listed twice in enabled_plugins", id)
+		}
+		seenPlugin[id] = true
+	}
+	for id := range c.Plugins {
+		if !seenPlugin[id] {
+			add("settings for plugin %q are present but the plugin is not in enabled_plugins", id)
+		}
+	}
+
 	return errors.Join(errs...)
 }

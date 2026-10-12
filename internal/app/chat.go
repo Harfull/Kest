@@ -12,6 +12,7 @@ import (
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
+	"github.com/Harfull/Kest/internal/plugin"
 	"github.com/Harfull/Kest/internal/scheduler"
 	"github.com/Harfull/Kest/internal/store"
 	"github.com/Harfull/Kest/internal/telegram"
@@ -44,6 +45,10 @@ type chat struct {
 	sched   *scheduler.Scheduler
 	budget  *llm.Budget
 	started time.Time
+
+	ownerChat int64 // where approvals and plugin notifications go
+	confirm   *agent.Confirmations
+	registry  *plugin.Registry
 
 	// queue serializes conversation turns so history stays in order, while
 	// commands and button presses are handled immediately.
@@ -243,6 +248,8 @@ func (c *chat) status(ctx context.Context, chatID int64) {
 		}
 	}
 
+	b.WriteString(c.pluginLine())
+
 	if d, ok := c.tr.(interface{ Dropped() int64 }); ok && d.Dropped() > 0 {
 		fmt.Fprintf(&b, "Messages ignored from other accounts: %d.\n", d.Dropped())
 	}
@@ -290,6 +297,11 @@ func (c *chat) callback(ctx context.Context, u telegram.Update) {
 		if err := c.tr.AnswerCallback(ctx, cb.ID, text); err != nil {
 			c.log.DebugContext(ctx, "answer callback", "err", err)
 		}
+	}
+
+	if id, approve, ok := agent.ParseDecision(cb.Data); ok {
+		c.decide(ctx, ack, id, approve)
+		return
 	}
 
 	choice, stamp, ok := parseForget(cb.Data)
@@ -348,4 +360,37 @@ func parseForget(data string) (choice string, stamp int64, ok bool) {
 		return "", 0, false
 	}
 	return choice, n, true
+}
+
+// decide handles an approval button press.
+func (c *chat) decide(ctx context.Context, ack func(string), id string, approve bool) {
+	if !c.confirm.Resolve(ctx, id, approve) {
+		ack("That one has expired.")
+		return
+	}
+	if approve {
+		ack("Going ahead")
+	} else {
+		ack("Skipped")
+	}
+}
+
+// pluginLine summarizes which plugins are running and which failed.
+func (c *chat) pluginLine() string {
+	var ok, bad []string
+	for _, st := range c.registry.Statuses() {
+		if st.Err != nil {
+			bad = append(bad, st.ID)
+		} else {
+			ok = append(ok, st.ID)
+		}
+	}
+	line := "Plugins: none loaded.\n"
+	if len(ok) > 0 {
+		line = "Plugins: " + strings.Join(ok, ", ") + ".\n"
+	}
+	if len(bad) > 0 {
+		line += "Could not load: " + strings.Join(bad, ", ") + " (see the logs).\n"
+	}
+	return line
 }

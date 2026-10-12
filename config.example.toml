@@ -2,6 +2,7 @@
 # Secrets are best supplied through the environment instead of this file.
 
 data_dir = "./data"
+enabled_plugins = ["reminders", "tasks", "webfetch"]
 timezone = "UTC"            # IANA zone, e.g. "Europe/London"
 
 [log]
@@ -30,3 +31,14 @@ tts = "openai/gpt-4o-mini-tts-2025-12-15"
 max_proactive_per_day = 3   # 0 to 20
 quiet_start = "23:00"       # used until the sleep model has enough data
 quiet_end = "07:00"
+
+# Settings for a plugin go under [plugins.<id>]; they are checked against the
+# plugin's manifest. See each plugin's README for its settings.
+[plugins.reminders]
+max_active = 50
+
+[plugins.tasks]
+max_open = 200
+
+[plugins.webfetch]
+max_chars = 6000
