@@ -37,3 +37,7 @@ Add a test to `internal/agent/eval_test.go` (build tag `eval`). Use `newAgent` w
 ## Choosing a model
 
 Tool calling support is required for the general slot; filter OpenRouter's model list by it. Prefer the cheapest model that passes all three tests reliably, then set it with `KEST_MODEL_GENERAL` and keep a stronger model in `KEST_MODEL_FALLBACKS`.
+
+## Past results
+
+[October 2026](../research/llm-openrouter/model-evaluation-2026-10.md) compares four current cheap models and explains the default.

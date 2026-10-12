@@ -193,7 +193,7 @@ func build(script string) egg {
 				Name:         "General Model",
 				Description:  "OpenRouter model for conversation and tool use. Must support tool calling.",
 				EnvVariable:  "KEST_MODEL_GENERAL",
-				DefaultValue: "google/gemini-3-flash-preview",
+				DefaultValue: "anthropic/claude-haiku-5.5",
 				UserViewable: true,
 				UserEditable: true,
 				Rules:        "required|string|max:128",

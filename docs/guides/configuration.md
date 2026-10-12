@@ -49,7 +49,7 @@ On Linux and macOS the secrets file must be mode 0600. Kest refuses to start if 
 
 | Env var | TOML | Default | Meaning |
 | --- | --- | --- | --- |
-| `KEST_MODEL_GENERAL` | `llm.models.general` | `google/gemini-3-flash-preview` | Conversation and tools; must support tool calling |
+| `KEST_MODEL_GENERAL` | `llm.models.general` | `anthropic/claude-haiku-5.5` | Conversation and tools; must support tool calling |
 | `KEST_MODEL_FALLBACKS` | `llm.models.fallbacks` | none | Tried in order if the general model fails |
 | `KEST_MODEL_TRANSCRIPTION` | `llm.models.transcription` | `openai/gpt-4o-mini-transcribe` | Voice notes to text |
 | `KEST_MODEL_TTS` | `llm.models.tts` | `google/gemini-3.1-flash-tts-preview` | Voice replies |

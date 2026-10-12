@@ -111,7 +111,7 @@ func Defaults() Config {
 		LLM: LLMConfig{
 			BaseURL: "https://openrouter.ai/api/v1",
 			Models: Models{
-				General:       "google/gemini-3-flash-preview",
+				General:       "anthropic/claude-haiku-5.5",
 				Transcription: "openai/gpt-4o-mini-transcribe",
 				TTS:           "google/gemini-3.1-flash-tts-preview",
 			},

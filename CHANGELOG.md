@@ -6,6 +6,7 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Changed
 
+- The default general model is now `anthropic/claude-haiku-5.5`. It passed every check in the model evaluation, which now has recorded results for four current cheap models.
 - The default text-to-speech model is now `google/gemini-3.1-flash-tts-preview` with the voice `Kore`, because the previous default no longer exists on OpenRouter. Speech models need an explicit voice, so Kest also falls back to a built-in voice for the model family when the configured one is rejected.
 
 ### Added

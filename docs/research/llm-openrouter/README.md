@@ -78,3 +78,7 @@ Caveats: the Opus encoder is pre-v1 (v0.2.x), and the PCM sample-rate default is
 - Which general model gives the best tone for the persona at acceptable cost? Run a small evaluation harness (`docs/guides/model-evaluation.md`, Phase 2) with fixed persona prompts.
 - Does streaming into Telegram (`sendMessageDraft`, Bot API 10.x) feel better than one final message? Evaluate in Phase 2.
 - Exact rate limits are undocumented; observe in production and tune the client.
+
+## Evaluation results
+
+- [General model evaluation, October 2026](model-evaluation-2026-10.md): Claude Haiku 5.5, DeepSeek V4.1 Flash, Gemini 3.8 Flash and GPT-6 Luna compared; Haiku 5.5 is the default.

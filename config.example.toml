@@ -22,7 +22,7 @@ daily_budget_usd = 1.0      # 0 disables the guard
 zdr_only = false            # route only to zero-data-retention providers
 
 [llm.models]
-general = "google/gemini-3-flash-preview"
+general = "anthropic/claude-haiku-5.5"
 fallbacks = []              # e.g. ["provider/model-a", "provider/model-b"]
 transcription = "openai/gpt-4o-mini-transcribe"
 tts = "google/gemini-3.1-flash-tts-preview"

@@ -82,7 +82,7 @@
             "name": "General Model",
             "description": "OpenRouter model for conversation and tool use. Must support tool calling.",
             "env_variable": "KEST_MODEL_GENERAL",
-            "default_value": "google/gemini-3-flash-preview",
+            "default_value": "anthropic/claude-haiku-5.5",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|string|max:128",

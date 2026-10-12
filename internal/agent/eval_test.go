@@ -31,7 +31,7 @@ func evalClient(t *testing.T) *llm.Client {
 	}
 	model := os.Getenv("KEST_MODEL_GENERAL")
 	if model == "" {
-		model = "google/gemini-3-flash-preview"
+		model = "anthropic/claude-haiku-5.5"
 	}
 	c, err := llm.New(llm.Options{
 		BaseURL: "https://openrouter.ai/api/v1", APIKey: key, General: model,
