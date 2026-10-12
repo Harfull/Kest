@@ -230,7 +230,7 @@ func build(script string) egg {
 			},
 			{
 				Name:         "TTS Voice",
-				Description:  "Voice name for the text-to-speech model.",
+				Description:  "Voice name for the text-to-speech model. Voices differ per model; if the model rejects it, Kest retries with the model default.",
 				EnvVariable:  "KEST_TTS_VOICE",
 				DefaultValue: "alloy",
 				UserViewable: true,

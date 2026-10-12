@@ -39,6 +39,7 @@ Kest/
 │   │   ├── maintenance.go            nightly backup and pruning
 │   │   └── messages.go               user-facing strings
 │   │
+│   ├── audio/                        PCM to Ogg/Opus for models that only return PCM
 │   ├── store/                        SQLite
 │   │   ├── sqlite.go                 open, pragmas, verification, pools
 │   │   ├── migrate.go                embedded migration runner

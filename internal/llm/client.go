@@ -13,10 +13,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Harfull/Kest/internal/clock"
@@ -55,6 +57,7 @@ type Options struct {
 	HTTP       *http.Client  // defaults to a client with a 90 second timeout
 	Ledger     Ledger        // optional; usage is not recorded when nil
 	Clock      clock.Clock   // defaults to the system clock
+	Log        *slog.Logger  // optional; used for notable decisions such as format switches
 	MaxRetries int           // retries after the first attempt; defaults to 3
 	Backoff    time.Duration // base delay; defaults to 500ms
 	Sleep      func(ctx context.Context, d time.Duration) error
@@ -64,6 +67,12 @@ type Options struct {
 type Client struct {
 	o      Options
 	budget *Budget
+
+	// ttsFormat remembers, per speech model, the format it accepted.
+	ttsFormat sync.Map
+	// ttsNoVoice marks speech models that rejected the configured voice but
+	// worked with the provider's default.
+	ttsNoVoice sync.Map
 }
 
 // New validates opts, fills defaults and returns a Client.
@@ -261,4 +270,11 @@ func (c *Client) record(ctx context.Context, slot, model string, u Usage, genID 
 		CostUSD:          u.Cost,
 		GenerationID:     genID,
 	})
+}
+
+// Logf logs an informational message if a logger is configured.
+func (o Options) Logf(ctx context.Context, msg string, args ...any) {
+	if o.Log != nil {
+		o.Log.InfoContext(ctx, msg, args...)
+	}
 }

@@ -79,8 +79,9 @@ type Transport interface {
 	Run(ctx context.Context, h Handler) error
 	// Send posts a text reply and returns the ID of its last part.
 	Send(ctx context.Context, r Reply) (messageID int, err error)
-	// SendVoice posts MP3 audio as a voice message.
-	SendVoice(ctx context.Context, chatID int64, mp3 []byte, silent bool) error
+	// SendVoice posts audio as a voice message. ext is the file type: "ogg" for
+	// Ogg/Opus (Telegram's native voice format) or "mp3".
+	SendVoice(ctx context.Context, chatID int64, audio []byte, ext string, silent bool) error
 	// SendDocument posts a file, such as a data export.
 	SendDocument(ctx context.Context, chatID int64, filename string, data []byte, caption string) error
 	// Typing shows "typing…" (or "recording voice…") for a few seconds.

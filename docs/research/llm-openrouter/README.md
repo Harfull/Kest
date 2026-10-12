@@ -45,12 +45,24 @@ How should Kest use OpenRouter for its three model roles (general, transcription
 
 ### Text to speech
 
-- `POST /audio/speech`, JSON body: `model`, `input`, `voice`, `response_format` (`mp3` or `pcm`), and provider-specific fields such as `instructions` for OpenAI models.
-- The response is a raw audio byte stream.
-- Listed models: `openai/gpt-4o-mini-tts-2025-12-15`, `google/gemini-3.1-flash-tts-preview`, `mistralai/voxtral-mini-tts-2603`. Voices are per model.
-- Telegram `sendVoice` accepts MP3, so no ffmpeg is needed. See [telegram](../telegram/README.md).
-- Model slugs change often. They must be configuration, never constants.
+Sources: [TTS guide](https://openrouter.ai/docs/features/multimodal/tts), and a failure seen in the first beta test (below).
 
+- `POST /audio/speech`, JSON body: `model`, `input`, `voice`, `response_format`, plus optional `instructions`, `speed` and `provider`. The response is a raw audio byte stream; errors are JSON.
+- `response_format` is `mp3` or `pcm`, and the documented **default is `pcm`**. Support is per model: OpenAI and Voxtral give MP3, while Gemini TTS **refuses MP3** (real error from the beta: `Gemini TTS only supports response_format="pcm". Got "mp3".`).
+- PCM responses carry `Content-Type: audio/pcm`. The rate is not documented for every model; OpenAI, Gemini and Azure MAI all produce 24 kHz 16-bit mono, and some responses add `;rate=` and `;channels=` parameters. Kest reads them when present and otherwise assumes 24 kHz mono.
+- Voices differ per model (`voice` may be omitted only if the provider has a default). `GET /api/v1/models?output_modalities=speech` lists speech models.
+- Listed models: `openai/gpt-4o-mini-tts-2025-12-15`, `google/gemini-3.1-flash-tts-preview`, `mistralai/voxtral-mini-tts-2603`. Model slugs change often, so they are configuration.
+- Telegram `sendVoice` plays **Ogg/Opus, MP3 and M4A** (verified in the Bot API reference). MP3 can be sent as is. Raw PCM cannot be sent, so it must be encoded.
+
+#### What Kest does about it
+
+1. Ask for MP3. If the model answers 400 and names the format it needs, switch to that format and remember it per model for the life of the process (one wasted request, once).
+2. Trust the response `Content-Type` over what was requested.
+3. Encode PCM to **Ogg/Opus** in-process with a pure-Go encoder (`internal/audio`, using `github.com/thesyncim/gopus`, BSD-3-Clause, no cgo, no ffmpeg), mixing stereo down to mono and resampling unusual rates. Opus is Telegram's native voice format.
+4. If the model rejects the configured voice, retry once with the provider's default voice and remember that; if that also fails, say which setting to change.
+5. If anything in the voice path fails, send the reply as text.
+
+Caveats: the Opus encoder is pre-v1 (v0.2.x), and the PCM sample-rate default is documented behavior of the common models rather than something every model promises. Both are covered by round-trip tests (encode, decode, compare pitch and length).
 ## Decision
 
 1. Write a **thin, in-house OpenRouter client** on `net/http` in `internal/llm`. The surface is small (chat, tools, two audio calls), and an SDK would hide retry, cost and fallback behavior we want to control.

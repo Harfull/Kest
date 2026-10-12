@@ -1,11 +1,13 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,6 +47,7 @@ func (b *syncBuffer) String() string {
 type fakeRouter struct {
 	chatStatus   atomic.Int32 // non-zero: chat returns this error status
 	speechStatus atomic.Int32 // non-zero: speech returns this error status
+	pcmOnly      atomic.Bool  // speech model refuses MP3 and returns PCM, like Gemini TTS
 	transcript   atomic.Value // string
 	chats        atomic.Int32
 	script       atomic.Value // func(chatRequest) string: the assistant message as JSON
@@ -113,6 +116,21 @@ func (f *fakeRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if fail(f.speechStatus.Load()) {
 			return
 		}
+		var sreq struct {
+			Format string `json:"response_format"`
+		}
+		_ = json.Unmarshal(body, &sreq)
+		if f.pcmOnly.Load() {
+			if sreq.Format != "pcm" {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = io.WriteString(w, `{"error":{"code":400,"message":"Gemini TTS only supports response_format=\"pcm\". Got \""+sreq.Format+"\"."}}`)
+				return
+			}
+			w.Header().Set("Content-Type", "audio/pcm;rate=24000;channels=1")
+			_, _ = w.Write(tonePCM())
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write([]byte("ID3-speech"))
 	default:
 		http.NotFound(w, r)
@@ -264,11 +282,39 @@ func TestVoiceNoteGetsVoiceReply(t *testing.T) {
 	e.send(telegram.Update{Voice: &telegram.Voice{FileID: "f1", Duration: 3, MIMEType: "audio/ogg", Size: 4}})
 
 	waitFor(t, "voice reply", func() bool { return len(e.fake.Voices()) == 1 })
-	if string(e.fake.Voices()[0].Audio) != "ID3-speech" {
-		t.Errorf("voice audio = %q", e.fake.Voices()[0].Audio)
+	if v := e.fake.Voices()[0]; string(v.Audio) != "ID3-speech" || v.Ext != "mp3" {
+		t.Errorf("voice = %q as %s, want MP3 passed through untouched", v.Audio, v.Ext)
 	}
 	if n := len(e.fake.Snapshot()); n != 0 {
 		t.Errorf("%d text replies sent alongside the voice reply", n)
+	}
+}
+
+func TestPCMOnlySpeechModelStillGetsAVoiceReply(t *testing.T) {
+	// Gemini TTS refuses MP3 and returns raw PCM: Kest must adapt by itself.
+	e := start(t)
+	e.router.pcmOnly.Store(true)
+	e.fake.Files["f1"] = []byte("OggS")
+
+	e.send(telegram.Update{Voice: &telegram.Voice{FileID: "f1", MIMEType: "audio/ogg", Size: 4}})
+
+	waitFor(t, "voice reply", func() bool { return len(e.fake.Voices()) == 1 })
+	v := e.fake.Voices()[0]
+	if v.Ext != "ogg" || !bytes.HasPrefix(v.Audio, []byte("OggS")) || !bytes.Contains(v.Audio[:100], []byte("OpusHead")) {
+		t.Errorf("voice = %s, %d bytes; want an Ogg/Opus file Telegram can play", v.Ext, len(v.Audio))
+	}
+	if n := len(e.fake.Snapshot()); n != 0 {
+		t.Errorf("%d text replies sent although the voice reply worked", n)
+	}
+	if !strings.Contains(e.log.String(), "switching") {
+		t.Errorf("the format switch should be logged:\n%s", e.log.String())
+	}
+
+	// A second voice note goes straight to PCM.
+	e.send(telegram.Update{Voice: &telegram.Voice{FileID: "f1", MIMEType: "audio/ogg", Size: 4}})
+	waitFor(t, "second voice reply", func() bool { return len(e.fake.Voices()) == 2 })
+	if got := strings.Count(e.log.String(), "text-to-speech model rejected a format"); got != 1 {
+		t.Errorf("format switch logged %d times, want once (the choice is remembered)", got)
 	}
 }
 
@@ -565,4 +611,15 @@ func TestMaintenanceBacksUpAndPrunes(t *testing.T) {
 	if len(msgs) != 1 {
 		t.Errorf("messages after pruning = %d, want 1", len(msgs))
 	}
+}
+
+// tonePCM is a third of a second of a 440 Hz tone: 24 kHz, 16-bit, mono.
+func tonePCM() []byte {
+	n := 24000 / 3
+	out := make([]byte, 0, n*2)
+	for i := range n {
+		v := int16(9000 * math.Sin(2*math.Pi*440*float64(i)/24000))
+		out = append(out, byte(uint16(v)), byte(uint16(v)>>8))
+	}
+	return out
 }

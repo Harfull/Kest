@@ -308,10 +308,10 @@ func TestVoiceTypingAndMenu(t *testing.T) {
 	b := newBot(t, f)
 	ctx := context.Background()
 
-	if err := b.SendVoice(ctx, 42, []byte("ID3-mp3"), true); err != nil {
+	if err := b.SendVoice(ctx, 42, []byte("ID3-mp3"), "mp3", true); err != nil {
 		t.Fatalf("SendVoice() error = %v", err)
 	}
-	if err := b.SendVoice(ctx, 42, nil, false); err == nil {
+	if err := b.SendVoice(ctx, 42, nil, "mp3", false); err == nil {
 		t.Error("empty audio accepted")
 	}
 	if err := b.Typing(ctx, 42, true); err != nil {
@@ -327,7 +327,16 @@ func TestVoiceTypingAndMenu(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if body := f.bodies("sendVoice"); len(body) != 1 || !strings.Contains(body[0], "ID3-mp3") || !strings.Contains(body[0], "kest.mp3") {
+	if err := b.SendVoice(ctx, 42, []byte("OggS-opus"), "ogg", false); err != nil {
+		t.Fatalf("SendVoice(ogg) error = %v", err)
+	}
+	if err := b.SendVoice(ctx, 42, []byte("RIFF"), "wav", false); err == nil {
+		t.Error("a wav file was accepted as a voice message")
+	}
+	if body := f.bodies("sendVoice"); len(body) != 2 || !strings.Contains(body[1], "kest.ogg") || !strings.Contains(body[1], "OggS-opus") {
+		t.Errorf("ogg voice body = %v", body)
+	}
+	if body := f.bodies("sendVoice"); len(body) < 1 || !strings.Contains(body[0], "ID3-mp3") || !strings.Contains(body[0], "kest.mp3") {
 		t.Errorf("sendVoice body = %v", body)
 	}
 	if body := f.bodies("sendChatAction"); len(body) != 1 || !strings.Contains(body[0], "record_voice") {

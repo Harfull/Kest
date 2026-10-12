@@ -42,10 +42,12 @@ Prefer environment variables for secrets. Secrets are never printed or logged.
 | `KEST_MODEL_FALLBACKS` | `llm.models.fallbacks` | none | Tried in order if the general model fails |
 | `KEST_MODEL_TRANSCRIPTION` | `llm.models.transcription` | `openai/gpt-4o-mini-transcribe` | Voice notes to text |
 | `KEST_MODEL_TTS` | `llm.models.tts` | `openai/gpt-4o-mini-tts-2025-12-15` | Voice replies |
-| `KEST_TTS_VOICE` | `llm.tts_voice` | `alloy` | Voice name for the TTS model |
+| `KEST_TTS_VOICE` | `llm.tts_voice` | `alloy` | Voice name for the TTS model. Voices differ per model (OpenAI uses names like `alloy`, Gemini uses its own). If the model rejects it, Kest retries with the model's default voice |
 | `KEST_OPENROUTER_BASE_URL` | `llm.base_url` | `https://openrouter.ai/api/v1` | API base |
 | `KEST_ZDR_ONLY` | `llm.zdr_only` | `false` | Only route to zero-data-retention providers where supported |
 | `KEST_DAILY_BUDGET_USD` | `llm.daily_budget_usd` | `1.00` | Spend guard; `0` disables |
+
+Voice replies work with any speech model: Kest asks for MP3 and, if a model only offers raw PCM (Gemini TTS does), switches by itself and encodes it to Ogg/Opus. Details: [../research/llm-openrouter/README.md](../research/llm-openrouter/README.md).
 
 Model names are OpenRouter slugs and change over time. Check [openrouter.ai/models](https://openrouter.ai/models) and filter by tool support (general) or by audio output/transcription.
 

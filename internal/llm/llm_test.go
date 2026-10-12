@@ -383,12 +383,12 @@ func TestSpeak(t *testing.T) {
 		_, _ = w.Write([]byte("ID3-fake-mp3"))
 	}, nil)
 
-	audio, err := h.client.Speak(context.Background(), "  Morning. Ready for your walk?  ")
+	sp, err := h.client.Speak(context.Background(), "  Morning. Ready for your walk?  ")
 	if err != nil {
 		t.Fatalf("Speak() error = %v", err)
 	}
-	if string(audio) != "ID3-fake-mp3" {
-		t.Errorf("audio = %q", audio)
+	if string(sp.Data) != "ID3-fake-mp3" || sp.Format != FormatMP3 {
+		t.Errorf("speech = %+v", sp)
 	}
 	if got["input"] != "Morning. Ready for your walk?" || got["voice"] != "alloy" ||
 		got["response_format"] != "mp3" || got["model"] != "test/tts" {
@@ -396,6 +396,223 @@ func TestSpeak(t *testing.T) {
 	}
 	if h.ledger.items[0].Slot != "tts" {
 		t.Errorf("usage = %+v", h.ledger.items)
+	}
+}
+
+const geminiError = `{"error":{"code":400,"message":"Gemini TTS only supports response_format=\"pcm\". Got \"mp3\"."}}`
+
+// pcmOnlyServer behaves like a model that refuses MP3, such as Gemini TTS.
+func pcmOnlyServer(t *testing.T, contentType string, requests *[]string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := readJSON(t, r)
+		format, _ := body["response_format"].(string)
+		*requests = append(*requests, format)
+		if format != "pcm" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, geminiError)
+			return
+		}
+		if contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
+		_, _ = w.Write([]byte{1, 0, 2, 0, 3, 0})
+	}
+}
+
+func TestSpeakSwitchesToPCMWhenTheModelRequiresIt(t *testing.T) {
+	var requests []string
+	h := newHarness(t, pcmOnlyServer(t, "audio/pcm", &requests), nil)
+
+	sp, err := h.client.Speak(context.Background(), "Hello there")
+	if err != nil {
+		t.Fatalf("Speak() error = %v", err)
+	}
+	if sp.Format != FormatPCM || sp.SampleRate != 24000 || sp.Channels != 1 || len(sp.Data) != 6 {
+		t.Errorf("speech = %+v; want PCM with the documented 24 kHz mono default", sp)
+	}
+	if strings.Join(requests, ",") != "mp3,pcm" {
+		t.Errorf("requests = %v, want mp3 then pcm", requests)
+	}
+
+	// The next call goes straight to PCM: no wasted round trip.
+	requests = nil
+	if _, err := h.client.Speak(context.Background(), "And again"); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(requests, ",") != "pcm" {
+		t.Errorf("second call requests = %v, want just pcm (learned)", requests)
+	}
+}
+
+func TestSpeakReadsRateAndChannelsFromContentType(t *testing.T) {
+	var requests []string
+	h := newHarness(t, pcmOnlyServer(t, "audio/pcm;rate=16000;channels=2", &requests), nil)
+
+	sp, err := h.client.Speak(context.Background(), "Hello")
+	if err != nil || sp.SampleRate != 16000 || sp.Channels != 2 {
+		t.Errorf("speech = %+v, %v", sp, err)
+	}
+}
+
+func TestSpeakRecognizesOtherFormatErrorWordings(t *testing.T) {
+	// No explicit hint in the message: it mentions the format, so try the other one.
+	n := 0
+	h := newHarness(t, func(w http.ResponseWriter, r *http.Request) {
+		n++
+		if body := readJSON(t, r); body["response_format"] == "mp3" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"error":{"message":"Invalid response_format for this model"}}`)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/pcm")
+		_, _ = w.Write([]byte{0, 0})
+	}, nil)
+
+	sp, err := h.client.Speak(context.Background(), "Hello")
+	if err != nil || sp.Format != FormatPCM || n != 2 {
+		t.Errorf("speech = %+v, %v after %d requests", sp, err, n)
+	}
+}
+
+func TestSpeakStopsWhenNeitherFormatWorks(t *testing.T) {
+	n := 0
+	h := newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		n++
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"message":"unsupported response_format"}}`)
+	}, nil)
+
+	if _, err := h.client.Speak(context.Background(), "Hello"); err == nil {
+		t.Fatal("Speak() succeeded")
+	}
+	if n != 2 {
+		t.Errorf("requests = %d, want exactly one per format", n)
+	}
+}
+
+func TestSpeakDoesNotRetryUnrelatedBadRequests(t *testing.T) {
+	n := 0
+	h := newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		n++
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"message":"input is too long"}}`)
+	}, nil)
+
+	if _, err := h.client.Speak(context.Background(), "Hello"); err == nil {
+		t.Fatal("Speak() succeeded")
+	}
+	if n != 1 {
+		t.Errorf("requests = %d, want 1", n)
+	}
+}
+
+func TestSpeakExplainsAWrongVoice(t *testing.T) {
+	h := newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"message":"Voice alloy is not available for this model"}}`)
+	}, nil)
+
+	_, err := h.client.Speak(context.Background(), "Hello")
+	if err == nil || !strings.Contains(err.Error(), "KEST_TTS_VOICE") || !strings.Contains(err.Error(), "alloy") {
+		t.Errorf("error = %v; it should point at KEST_TTS_VOICE", err)
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Error("the original API error was lost")
+	}
+}
+
+func TestSpeakFallsBackToTheDefaultVoice(t *testing.T) {
+	var voices []any
+	h := newHarness(t, func(w http.ResponseWriter, r *http.Request) {
+		body := readJSON(t, r)
+		voices = append(voices, body["voice"])
+		if body["voice"] != nil { // this model has no voice called alloy
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"error":{"message":"Unknown voice: alloy"}}`)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("ID3"))
+	}, nil)
+
+	if _, err := h.client.Speak(context.Background(), "Hello"); err != nil {
+		t.Fatalf("Speak() error = %v; the default voice should have been tried", err)
+	}
+	if len(voices) != 2 || voices[0] != "alloy" || voices[1] != nil {
+		t.Errorf("voices sent = %v, want alloy then none", voices)
+	}
+
+	// Remembered: the next call omits the voice from the start.
+	voices = nil
+	if _, err := h.client.Speak(context.Background(), "Again"); err != nil {
+		t.Fatal(err)
+	}
+	if len(voices) != 1 || voices[0] != nil {
+		t.Errorf("second call voices = %v, want one request without a voice", voices)
+	}
+}
+
+func TestSpeakDoesNotRememberADefaultVoiceThatAlsoFails(t *testing.T) {
+	n := 0
+	h := newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		n++
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"message":"voice is required"}}`)
+	}, nil)
+
+	_, err := h.client.Speak(context.Background(), "Hello")
+	if err == nil || !strings.Contains(err.Error(), "KEST_TTS_VOICE") {
+		t.Errorf("error = %v", err)
+	}
+	if n != 2 {
+		t.Errorf("requests = %d, want the configured voice then none", n)
+	}
+	if _, remembered := h.client.ttsNoVoice.Load("test/tts"); remembered {
+		t.Error("a failed attempt without a voice was remembered")
+	}
+}
+
+func TestSpeakTrustsTheContentTypeOverTheRequest(t *testing.T) {
+	// Asked for MP3, but the provider answers in PCM anyway.
+	h := newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "audio/pcm;rate=24000")
+		_, _ = w.Write([]byte{9, 9})
+	}, nil)
+	sp, err := h.client.Speak(context.Background(), "Hello")
+	if err != nil || sp.Format != FormatPCM {
+		t.Errorf("speech = %+v, %v", sp, err)
+	}
+
+	h = newHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "audio/wav")
+		_, _ = w.Write([]byte("RIFF"))
+	}, nil)
+	if _, err := h.client.Speak(context.Background(), "Hello"); err == nil {
+		t.Error("an unsupported content type was accepted")
+	}
+}
+
+func TestAlternativeFormat(t *testing.T) {
+	tests := []struct {
+		msg   string
+		tried map[string]bool
+		want  string
+	}{
+		{`Gemini TTS only supports response_format="pcm". Got "mp3".`, map[string]bool{"mp3": true}, "pcm"},
+		{`Model only supports response_format=mp3`, map[string]bool{"pcm": true}, "mp3"},
+		{`supports format: pcm`, map[string]bool{"mp3": true}, "pcm"},
+		{`Gemini TTS only supports response_format="pcm".`, map[string]bool{"mp3": true, "pcm": true}, ""},
+		{"invalid response_format", map[string]bool{"mp3": true}, "pcm"},
+		{"invalid response_format", map[string]bool{"pcm": true}, "mp3"},
+		{"invalid response_format", map[string]bool{"mp3": true, "pcm": true}, ""},
+		{"input is too long", map[string]bool{"mp3": true}, ""},
+		{"", map[string]bool{}, ""},
+	}
+	for _, tt := range tests {
+		if got := alternativeFormat(tt.msg, tt.tried); got != tt.want {
+			t.Errorf("alternativeFormat(%q, %v) = %q, want %q", tt.msg, tt.tried, got, tt.want)
+		}
 	}
 }
 

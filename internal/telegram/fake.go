@@ -29,6 +29,7 @@ type Fake struct {
 type FakeVoice struct {
 	ChatID int64
 	Audio  []byte
+	Ext    string
 	Silent bool
 }
 
@@ -77,10 +78,10 @@ func (f *Fake) Send(_ context.Context, r Reply) (int, error) {
 }
 
 // SendVoice records the voice message.
-func (f *Fake) SendVoice(_ context.Context, chatID int64, mp3 []byte, silent bool) error {
+func (f *Fake) SendVoice(_ context.Context, chatID int64, audio []byte, ext string, silent bool) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.voices = append(f.voices, FakeVoice{ChatID: chatID, Audio: mp3, Silent: silent})
+	f.voices = append(f.voices, FakeVoice{ChatID: chatID, Audio: audio, Ext: ext, Silent: silent})
 	return nil
 }
 

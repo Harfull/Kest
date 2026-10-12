@@ -217,15 +217,18 @@ func keyboard(rows [][]Button) *models.InlineKeyboardMarkup {
 	return kb
 }
 
-// SendVoice posts MP3 audio as a voice message. Telegram plays MP3 sent this
-// way inline; no transcoding is needed.
-func (t *Bot) SendVoice(ctx context.Context, chatID int64, mp3 []byte, silent bool) error {
-	if len(mp3) == 0 {
+// SendVoice posts audio as a voice message. Telegram plays Ogg/Opus, MP3 and
+// M4A sent this way inline.
+func (t *Bot) SendVoice(ctx context.Context, chatID int64, audio []byte, ext string, silent bool) error {
+	if len(audio) == 0 {
 		return errors.New("telegram: empty audio")
+	}
+	if ext != "ogg" && ext != "mp3" && ext != "m4a" {
+		return fmt.Errorf("telegram: voice messages must be ogg, mp3 or m4a, not %q", ext)
 	}
 	_, err := t.b.SendVoice(ctx, &tgbot.SendVoiceParams{
 		ChatID:              chatID,
-		Voice:               &models.InputFileUpload{Filename: "kest.mp3", Data: bytes.NewReader(mp3)},
+		Voice:               &models.InputFileUpload{Filename: "kest." + ext, Data: bytes.NewReader(audio)},
 		DisableNotification: silent,
 	})
 	if err != nil {

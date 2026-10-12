@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Harfull/Kest/internal/agent"
+	"github.com/Harfull/Kest/internal/audio"
 	"github.com/Harfull/Kest/internal/clock"
 	"github.com/Harfull/Kest/internal/config"
 	"github.com/Harfull/Kest/internal/llm"
@@ -138,12 +139,17 @@ func (c *chat) sendVoice(ctx context.Context, chatID int64, reply string) bool {
 	if err := c.tr.Typing(ctx, chatID, true); err != nil {
 		c.log.DebugContext(ctx, "recording indicator failed", "err", err)
 	}
-	audio, err := c.llm.Speak(ctx, plainText(reply))
+	speech, err := c.llm.Speak(ctx, plainText(reply))
 	if err != nil {
 		c.log.WarnContext(ctx, "speech synthesis failed; sending text", "err", err)
 		return false
 	}
-	if err := c.tr.SendVoice(ctx, chatID, audio, false); err != nil {
+	data, ext, err := voiceFile(speech)
+	if err != nil {
+		c.log.WarnContext(ctx, "could not prepare the voice reply; sending text", "err", err)
+		return false
+	}
+	if err := c.tr.SendVoice(ctx, chatID, data, ext, false); err != nil {
 		c.log.WarnContext(ctx, "voice send failed; sending text", "err", err)
 		return false
 	}
@@ -393,4 +399,17 @@ func (c *chat) pluginLine() string {
 		line += "Could not load: " + strings.Join(bad, ", ") + " (see the logs).\n"
 	}
 	return line
+}
+
+// voiceFile turns synthesized speech into a file Telegram plays as a voice
+// message: MP3 is sent as is, PCM is encoded to Ogg/Opus.
+func voiceFile(s *llm.Speech) (data []byte, ext string, err error) {
+	if s.Format == llm.FormatPCM {
+		ogg, err := audio.PCMToOggOpus(s.Data, s.SampleRate, s.Channels)
+		if err != nil {
+			return nil, "", err
+		}
+		return ogg, "ogg", nil
+	}
+	return s.Data, "mp3", nil
 }

@@ -4,6 +4,14 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-10-12
+
+Fixes found while testing beta 1 on a real panel.
+
+### Fixed
+
+- Voice replies failed with models that only return PCM audio, such as Gemini TTS (`Gemini TTS only supports response_format="pcm"`). Kest now learns each speech model's format from its error, encodes PCM to Ogg/Opus in-process (no ffmpeg needed), and falls back to the model's default voice if the configured one is rejected.
+
 ## [0.1.0-beta.1] - 2026-10-11
 
 First beta, for testing the Pterodactyl egg and the Telegram bot end to end. Everything below was built before this release.

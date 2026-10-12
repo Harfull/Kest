@@ -120,7 +120,7 @@
         },
         {
             "name": "TTS Voice",
-            "description": "Voice name for the text-to-speech model.",
+            "description": "Voice name for the text-to-speech model. Voices differ per model; if the model rejects it, Kest retries with the model default.",
             "env_variable": "KEST_TTS_VOICE",
             "default_value": "alloy",
             "user_viewable": true,

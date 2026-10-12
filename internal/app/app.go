@@ -122,6 +122,7 @@ func (a *App) Run(ctx context.Context) error {
 		HTTP:          &http.Client{Timeout: 90 * time.Second},
 		Ledger:        db,
 		Clock:         a.clock,
+		Log:           a.log,
 	})
 	if err != nil {
 		return err
