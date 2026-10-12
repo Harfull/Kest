@@ -15,6 +15,12 @@ import (
 	"github.com/Harfull/Kest/internal/plugin"
 )
 
+// actionError is a failure the worker reported for one action, such as a ref
+// that no longer exists. The browser itself is fine, so it keeps running.
+type actionError struct{ msg string }
+
+func (e *actionError) Error() string { return e.msg }
+
 type worker struct {
 	cmd  *exec.Cmd
 	in   io.WriteCloser
@@ -77,7 +83,7 @@ func (w *worker) stop() {
 	}
 }
 
-func (w *worker) call(ctx context.Context, action string, args arguments) (string, error) {
+func (w *worker) call(ctx context.Context, action string, args workerArgs) (string, error) {
 	type response struct {
 		Content string `json:"content"`
 		Error   string `json:"error"`
@@ -109,7 +115,7 @@ func (w *worker) call(ctx context.Context, action string, args arguments) (strin
 			return
 		}
 		if res.Error != "" {
-			result.err = errors.New(res.Error)
+			result.err = &actionError{msg: res.Error}
 			return
 		}
 		result.content = res.Content

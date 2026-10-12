@@ -32,11 +32,28 @@ func TestBrowserArguments(t *testing.T) {
 		{"local file", "navigate_page", arguments{URL: "file:///etc/passwd"}, true},
 		{"inline script", "navigate_page", arguments{URL: "javascript:alert(1)"}, true},
 		{"URL credentials", "navigate_page", arguments{URL: "https://secret@example.com"}, true},
-		{"blank selector", "click_element", arguments{}, true},
+		{"click needs a target", "click_element", arguments{}, true},
+		{"click by ref", "click_element", arguments{Ref: "e3"}, false},
+		{"click by frame ref", "click_element", arguments{Ref: "f2e10"}, false},
+		{"malformed ref", "click_element", arguments{Ref: "e3]; alert(1)"}, true},
 		{"key opens developer tools", "press_key", arguments{Key: "F12"}, true},
 		{"key enters form", "press_key", arguments{Key: "Enter"}, false},
+		{"key pages down", "press_key", arguments{Key: "PageDown"}, false},
+		{"scroll down", "scroll_page", arguments{Direction: "down"}, false},
+		{"scroll sideways", "scroll_page", arguments{Direction: "left"}, true},
 		{"unbounded scroll", "scroll_page", arguments{Pixels: 10001}, true},
+		{"negative scroll", "scroll_page", arguments{Pixels: -1}, true},
 		{"missing file", "upload_file", arguments{Selector: "input"}, true},
+		{"select needs a value", "select_option", arguments{Ref: "e1"}, true},
+		{"find needs text", "find_text", arguments{}, true},
+		{"history direction", "navigate_history", arguments{Direction: "sideways"}, true},
+		{"history back", "navigate_history", arguments{Direction: "back"}, false},
+		{"screenshot with no destination", "screenshot", arguments{}, true},
+		{"screenshot to owner", "screenshot", arguments{Send: true}, false},
+		{"screenshot to model", "screenshot", arguments{Look: true}, false},
+		{"click off screen", "click_position", arguments{X: 1280, Y: 10}, true},
+		{"read scope", "read_page", arguments{Scope: "everything"}, true},
+		{"wait too long", "wait_for", arguments{WaitMS: 16000}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -47,15 +64,57 @@ func TestBrowserArguments(t *testing.T) {
 	}
 }
 
-func TestOutboundActionsRequireApproval(t *testing.T) {
-	p := New()
-	for _, tool := range p.Tools() {
-		switch tool.Name {
-		case "navigate_page", "click_element", "fill_field", "press_key", "upload_file":
-			if !tool.Outbound || tool.Risk != plugin.RiskWrite {
-				t.Errorf("%s can send data without approval", tool.Name)
-			}
+// Anything that can change a website or send what the owner typed must still
+// reach the owner's approval; only reading and looking run freely.
+func TestRiskMatchesWhatEachToolCanDo(t *testing.T) {
+	asks := map[string]bool{
+		"navigate_page": true, "click_element": true, "click_position": true, "fill_field": true, "press_key": true,
+		"select_option": true, "hover_element": true, "navigate_history": true, "upload_file": true,
+	}
+	free := []string{"read_page", "scroll_page", "find_text", "wait_for", "screenshot", "list_tabs", "close_tab"}
+	byName := map[string]plugin.Tool{}
+	for _, tool := range New().(*Plugin).Tools() {
+		byName[tool.Name] = tool
+	}
+	for name := range asks {
+		tool, ok := byName[name]
+		if !ok {
+			t.Fatalf("missing tool %s", name)
 		}
+		if !tool.Outbound || tool.Risk != plugin.RiskWrite {
+			t.Errorf("%s can act on a website without approval", name)
+		}
+		if tool.Describe == nil {
+			t.Errorf("%s has no readable approval summary", name)
+		}
+	}
+	for _, name := range free {
+		tool, ok := byName[name]
+		if !ok {
+			t.Fatalf("missing tool %s", name)
+		}
+		if tool.Outbound || tool.Risk != plugin.RiskRead {
+			t.Errorf("%s should run without approval", name)
+		}
+	}
+	if byName["upload_file"].Grantable {
+		t.Error("uploads must be approved one at a time")
+	}
+	if !byName["click_element"].Grantable {
+		t.Error("click_element should accept a task grant")
+	}
+}
+
+func TestToolsFitInAPrompt(t *testing.T) {
+	size := 0
+	for _, tool := range New().(*Plugin).Tools() {
+		size += len(tool.Description) + len(tool.Schema)
+		if len(tool.Description) > 330 {
+			t.Errorf("%s description is %d characters; the browser's tools are sent on every turn", tool.Name, len(tool.Description))
+		}
+	}
+	if size > 11000 {
+		t.Errorf("browser tool definitions are %d bytes; trim them", size)
 	}
 }
 

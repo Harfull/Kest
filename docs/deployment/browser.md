@@ -115,7 +115,7 @@ const { chromium } = require('/opt/kest-browser/node_modules/playwright');
 JS
 ```
 
-`<data dir>/plugins/browser/profile/` persists logins; `inbox/` accepts owner upload candidates; `screenshots/` stores private PNG files. Back up the whole data directory while Kest is stopped. SQLite-only `/export` and nightly DB backups do not cover Chromium. Do not share profiles with your everyday browser or run two workers on one profile. Prune screenshots manually when they are no longer needed.
+`<data dir>/plugins/browser/profile/` persists logins; `inbox/` accepts owner upload candidates; `screenshots/` only holds an image between capture and delivery. Back up the whole data directory while Kest is stopped. SQLite-only `/export` and nightly DB backups do not cover Chromium. Do not share profiles with your everyday browser or run two workers on one profile.
 
 | Symptom | Action |
 | --- | --- |
@@ -127,9 +127,10 @@ JS
 | Chromium cannot launch on Wings | Ask the node administrator to check user namespaces, seccomp and AppArmor; use a compatible standalone host if unavailable |
 | Calagopus reports `sys_chroot("/proc/self/fdinfo/") == 0` | Chromium's sandbox cannot perform its chroot operation under the container policy. Calagopus's default seccomp profile conditions chroot on `SYS_CHROOT`, which its server containers drop. Keep sandboxing with a compatible custom daemon policy or the standalone Compose profile. An explicit reduced-isolation workaround is setting the server's `KEST_BROWSER_SANDBOX=false` and restarting; this disables Chromium's own sandbox and requires no image rebuild |
 | Private/internal URL refused | Expected: loopback, LAN, metadata and non-web ports are blocked |
-| Click fails | Read the page first and choose an exact visible locator; iframes may require a frame-specific workflow that this version does not expose |
+| Click fails | The error says why: a covering popup or banner, an element that is not visible yet, or a ref from an older page. Ask Kest to read the page again; refs inside iframes look like `f1e3` |
 | Login disappears | Check volume mounting and stop gracefully; session-only cookies can expire by site policy |
-| Screenshot not visible in Telegram | This version saves PNG files locally; inspect or download through the panel |
+| Screenshot not visible in Telegram | Ask for it to be sent. The tool reports whether Telegram accepted it, and limits sending to eight a minute. Kest cannot send during `/lockdown` |
+| Kest asks to approve every step | Press **Allow for this task** on the first prompt. It covers the rest of that request on the same site, except purchases, sign-ins, credentials and other commits |
 | Browser OOM or tmp full | Increase measured RAM/tmp capacity, reduce tabs, or use standalone Docker's larger `/dev/shm` |
 
 To update Playwright, change and re-lock `deploy/browser/package.json`, match the Docker base version, reinstall Chromium for standalone use, and rerun the tagged integration test. The seccomp profile is copied verbatim from the [Playwright 1.64.0 source](https://github.com/microsoft/playwright/blob/v1.64.0/utils/docker/seccomp_profile.json); its Apache-2.0 license is preserved in [LICENSE.playwright](../../deploy/browser/LICENSE.playwright).

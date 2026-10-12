@@ -4,6 +4,21 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The browser is much easier to work with. Reads show what is on screen, with the position on the page, so scrolling now reveals new text; `scroll_page` goes down, up, to the top or bottom, or to an element, and says when the page did not move. Elements have short refs (`e3`) that approvals can name, `find_text` jumps to a word, long text can be read in parts, dropdowns, popups, dialogs and frames work, and errors say what went wrong instead of one generic line. A failed click no longer restarts the browser and loses its tabs. The tool set shrank from 19 to 16 and each tool is shorter.
+- Screenshots work in both directions: `screenshot` can send the image to the owner in Telegram, attach it for the model to look at, or both, and Kest only says it did either after the tool confirms it. Screenshot files are deleted as soon as they are delivered.
+- Kest uses the browser without being told "browser": its tools are always offered, the plugin adds usage guidance to the prompt, and the live tool list overrides older "I can't do that" messages in history.
+- Approval prompts name the element (Click button "Add to cart" on shop.example.com) and offer **Allow for this task**, which covers further steps on the same site until the turn ends, but never purchases, sign-ins, credentials, other sites, uploads or blind clicks.
+- A turn may now take 14 model calls and 28 tool calls (was 8 and 12), because a browsing task is many small steps.
+- Replies can include [links](https://example.com); Telegram formatting now supports them.
+
+### Added
+
+- Telegram replies work both ways. Kest sees the message you replied to, including a highlighted part and a screenshot it sent earlier, and threads its answer under your message when you replied, when a message was waiting behind it, or when the answer took more than 20 seconds. Photos you send are shown to the model.
+- The typing indicator stays on for the whole turn instead of fading after five seconds.
+- Plugins can supply prompt guidance (`Prompter`), declare grantable tools (`Grantable`, `GrantCovers`) and a reason for the approval prompt (`AskReason`).
+
 ### Fixed
 
 - Recognize Calagopus's blocked Chromium `sys_chroot` operation as a sandbox launch failure and document the host-policy requirement and explicit administrator override.

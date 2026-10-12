@@ -33,7 +33,7 @@ func TestWorkerStripsAmbientCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(w.stop)
-	_, err = w.call(context.Background(), "list_tabs", arguments{})
+	_, err = w.call(context.Background(), "list_tabs", workerArgs{})
 	if err == nil {
 		t.Fatal("fixture should reject launch")
 	}
@@ -69,7 +69,7 @@ func TestCanceledExchangeReapsWorker(t *testing.T) {
 	t.Cleanup(w.stop)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	_, err = w.call(ctx, "list_tabs", arguments{})
+	_, err = w.call(ctx, "list_tabs", workerArgs{})
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("error = %v", err)
 	}

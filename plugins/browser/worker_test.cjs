@@ -51,3 +51,21 @@ test('upload confinement checks traversal, size, directories and symlinks', asyn
     t.diagnostic('symlink creation requires privileges on this Windows host');
   }
 });
+
+test('worker errors are mapped to safe, useful messages', () => {
+  const { friendly, UserError } = require('./worker.cjs');
+  for (const [input, expected] of [
+    ['locator.click: Error: strict mode violation: locator(\'a\') resolved to 3 elements: secret-token', 'matches 3 elements'],
+    ['locator.click: Timeout 10000ms exceeded. element <div class="secret-token"> intercepts pointer events', 'covering the target'],
+    ['page.goto: net::ERR_NAME_NOT_RESOLVED at https://secret-token.example/', 'ERR_NAME_NOT_RESOLVED'],
+    ['page.goto: Timeout 30000ms exceeded. navigating to secret-token', 'did not finish loading'],
+    ['locator.fill: Timeout 10000ms exceeded. waiting for locator secret-token', 'not found or could not be used'],
+    ['Target page, context or browser has been closed', 'tab was closed'],
+    ['something unexpected with secret-token', 'could not complete'],
+  ]) {
+    const output = friendly(new Error(input));
+    assert.ok(output.includes(expected), output);
+    assert.ok(!output.includes('secret-token'), output);
+  }
+  assert.equal(friendly(new UserError('A ref or selector is required.')), 'A ref or selector is required.');
+});

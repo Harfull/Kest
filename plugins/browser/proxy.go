@@ -70,7 +70,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Scheme != "http" || r.URL.User != nil || r.URL.Host == "" || !allowedPort(r.URL.Port()) {
-		http.Error(w, "destination blocked", http.StatusForbidden)
+		refuse(w, "destination blocked", http.StatusForbidden)
 		return
 	}
 	req := r.Clone(r.Context())
@@ -81,7 +81,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
 	res, err := client.Do(req)
 	if err != nil {
-		http.Error(w, "destination blocked or unavailable", http.StatusBadGateway)
+		refuse(w, "destination blocked or unavailable", http.StatusBadGateway)
 		return
 	}
 	defer res.Body.Close() //nolint:errcheck // response reader
@@ -93,6 +93,15 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(res.StatusCode)
 	_, _ = io.Copy(w, res.Body)
+}
+
+// blockedHeader marks a response that came from this proxy refusing a request
+// rather than from a website, so the worker can tell the two apart.
+const blockedHeader = "X-Kest-Blocked"
+
+func refuse(w http.ResponseWriter, message string, status int) {
+	w.Header().Set(blockedHeader, "1")
+	http.Error(w, message, status)
 }
 
 func allowedPort(port string) bool { return port == "" || port == "80" || port == "443" }
