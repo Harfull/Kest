@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"sync"
@@ -279,5 +280,55 @@ func TestLoadMigrationsValidation(t *testing.T) {
 func TestRealMigrationsAreValid(t *testing.T) {
 	if _, err := loadMigrations(migrationFS); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestExportAndForget(t *testing.T) {
+	db := openTest(t)
+	ctx := context.Background()
+
+	if err := db.SetProfile(ctx, "tz", `"Europe/London"`, t0); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetProfile(ctx, "note", `not json`, t0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.AddMessage(ctx, Message{TS: t0, Role: "user", Content: "hello"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AddUsage(ctx, Usage{TS: t0, Slot: "general", Model: "m", CostUSD: 0.01}); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := db.Export(ctx, t0)
+	if err != nil {
+		t.Fatalf("Export() error = %v", err)
+	}
+	var doc struct {
+		Profile  map[string]any   `json:"profile"`
+		Messages []map[string]any `json:"messages"`
+		Usage    []map[string]any `json:"llm_usage"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("export is not valid JSON: %v\n%s", err, raw)
+	}
+	if doc.Profile["tz"] != "Europe/London" || doc.Profile["note"] != "not json" {
+		t.Errorf("profile = %v", doc.Profile)
+	}
+	if len(doc.Messages) != 1 || doc.Messages[0]["content"] != "hello" || len(doc.Usage) != 1 {
+		t.Errorf("export = %s", raw)
+	}
+
+	if err := db.Forget(ctx); err != nil {
+		t.Fatalf("Forget() error = %v", err)
+	}
+	if msgs, _ := db.RecentMessages(ctx, 10); len(msgs) != 0 {
+		t.Errorf("messages survived Forget: %v", msgs)
+	}
+	if _, err := db.GetProfile(ctx, "tz"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("profile survived Forget: %v", err)
+	}
+	if spent, _ := db.SpendSince(ctx, t0); spent != 0.01 {
+		t.Errorf("cost records should be kept for the budget guard, spend = %v", spent)
 	}
 }
