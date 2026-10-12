@@ -4,6 +4,14 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- The coach: habits with if-then plans and a tiny version, rolling consistency instead of streaks, a gentle lapse protocol, and a daily rhythm of morning check-in, habit prompts, evening log and a Sunday review, with an opt-in wind-down.
+- A notification budget: a daily cap, cooldowns, no messages in quiet hours, and a back-off ladder that asks "message less?" when messages go unanswered.
+- A sleep model that learns from bedtime and wake messages, chat gaps and button confirmations, and sets quiet hours from them. Estimates are always approximate.
+- Agent tools for habits, sleep and check-in preferences, and coaching context in the system prompt.
+- `/settings` to see check-in settings and quiet hours, and `/lockdown` to stop all writes, sends and unprompted messages until restart.
+
 ## [0.1.0-beta.2] - 2026-10-12
 
 Fixes found while testing beta 1 on a real panel.

@@ -4,7 +4,7 @@ A personal assistant that helps you stay consistent.
 
 Kest lives in Telegram. It keeps track of your workouts, meals, sleep and focus, checks in at the right moments, and talks to you like a steady friend: warm, direct, never preachy. Behind the chat it can read and send email, work with Notion, and connect to hundreds of other tools through a plugin system.
 
-> Status: early development. Phases 1 and 2 are largely built: Kest answers text and voice notes in Telegram (owner-only), keeps history and memory in SQLite, runs a persistent scheduler, sets reminders, keeps a task list, reads web pages, and asks before doing anything risky. Habit coaching and email/Notion integrations come next. See the [roadmap](docs/roadmap.md).
+> Status: early development. Phases 1 and 2 are largely built: Kest answers text and voice notes in Telegram (owner-only), keeps history and memory in SQLite, runs a persistent scheduler, sets reminders, keeps a task list, reads web pages, and asks before doing anything risky. Phase 3 added the coach: habits, a daily rhythm, a notification budget and a sleep model. Email and Notion integrations come next. See the [roadmap](docs/roadmap.md).
 
 ## What makes Kest different
 

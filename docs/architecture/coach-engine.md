@@ -130,8 +130,23 @@ If several misses accumulate, Kest asks whether the habit is still right instead
 5. Telegram sends it with buttons: "Slept about right", "Short night", "Plan my day".
 6. The tap updates the sleep model and starts the next flow.
 
+## What Phase 3 built
+
+The design above is the target. Phase 3 implements the core of it and simplifies in four places, on purpose:
+
+- **One engine, no module interface yet.** `internal/coach` is a single `Coach` with sub-packages `habit` (cadence, windows, consistency), `sleep` (events, inference, quiet hours), `budget` (caps, cooldowns, back-off) and `messages` (templates). The `Module` interface arrives with the first domain that needs it (workout, Phase 4).
+- **One tick instead of one job per slot.** A scheduler job `coach.tick` runs every five minutes (`MisfireSkip`). Each tick works out what is due from the sleep model, the habits and today's history, and sends at most one message. This keeps the schedule correct when the sleep model changes, with no jobs to reschedule.
+- **Templates only.** Every proactive message comes from `messages.toml` and passes `voice.Check`. Model-composed messages are a later step.
+- **Sunday review replaces the evening check-in**, so there is one message that night, not two.
+
+How a message gets out: `Tick` loads preferences, refreshes last night's estimate, builds the list of due candidates in priority order (the "message less?" question first, then morning, habit prompts, evening, wind-down, weekly) and asks the budget about each. The first one allowed is composed, sent through the `Outbox` and recorded in the notification history. The history is what the budget reads next time.
+
+What the owner can do about it: ask in conversation (the agent calls `coach__set_preferences`), see the result with `/settings`, and silence everything with `/lockdown`. Button data is `area:action[:argument]` and stays under Telegram's 64 byte limit.
+
+What the agent gets: the tools `create_habit`, `list_habits`, `log_habit`, `update_habit`, `log_sleep`, `sleep_report` and `set_preferences` (all under the normal risk policy), plus a short context block in the system prompt with the habits, last night's sleep and the current settings.
+
 ## Testing
 
 - All time comes from `clock.Clock`; modules take a fake clock.
 - Golden tests for message selection and the lapse protocol.
-- Simulation tests: a synthetic owner with scripted responsiveness runs 60 days against the budget and adaptation logic to confirm caps hold and quiet hours are never violated.
+- Simulation tests: a synthetic owner with scripted responsiveness runs 60 days against the budget to confirm caps hold and quiet hours are never violated (`TestTwoMonthSimulation`). An owner who never replies must receive less than half as many messages as one who does. Adaptation is Phase 5.

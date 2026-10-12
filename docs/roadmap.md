@@ -28,7 +28,7 @@ Kest answers in Telegram, owner-only, with real persistence.
 - ✅ `scheduler`: persistent jobs, recurrence, DST tests, misfire policy
 - ✅ Commands: `/start`, `/help`, `/status`, `/export`, `/forget` (with an expiring confirmation)
 - ✅ Nightly maintenance job: backup (last 7 kept) and pruning of old messages
-- ⬜ `/settings` (tone, volume, quiet hours) and `/lockdown`
+- ✅ `/settings` (shows check-ins and quiet hours; changes are made by asking) and `/lockdown`
 - ⬜ `secrets` file (mode 0600) and an `audit` package around the audit table
 - ⬜ Egg verified on a real panel; release v0.1.0
 
@@ -51,19 +51,19 @@ The agent can act, safely.
 
 Exit criteria: "remind me to stretch at 3 and tomorrow at 9" works; a prompt-injection test suite passes. Both hold in automated tests against a scripted model; a live check with a real model and a real bot token is still to be done.
 
-## Phase 3: Coach core ⬜
+## Phase 3: Coach core ✅
 
 The product's heart.
 
-- ⬜ Habits with if-then plans; logs
-- ⬜ Consistency metrics (rates, showing-up days)
-- ⬜ Daily rhythm: morning, midday, evening, weekly
-- ⬜ Notification budget, cooldowns, quiet hours
-- ⬜ Sleep model v1: explicit events, confirmations, chat-gap inference, confidence
-- ⬜ Lapse protocol and messages
-- ⬜ Message templates as data; banned-phrase validator
+- ✅ Habits with if-then plans; logs
+- ✅ Consistency metrics (rates, showing-up days)
+- ✅ Daily rhythm: morning, habit prompts (midday), evening, weekly
+- ✅ Notification budget, cooldowns, quiet hours
+- ✅ Sleep model v1: explicit events, confirmations, chat-gap inference, confidence
+- ✅ Lapse protocol and messages
+- ✅ Message templates as data; banned-phrase validator
 
-Exit criteria: a 60 day simulated owner never receives a message in quiet hours or above budget; a user can set up a habit in under two minutes.
+Exit criteria: a 60 day simulated owner never receives a message in quiet hours or above budget (tested in `TestTwoMonthSimulation`); a user can set up a habit in under two minutes (the agent asks three questions and calls `coach__create_habit`; timing it needs a live run).
 
 ## Phase 4: Integrations ⬜
 

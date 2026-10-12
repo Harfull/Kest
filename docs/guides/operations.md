@@ -28,10 +28,10 @@ Stop Kest before copying `kest.db` by hand, or use the backups folder. Layout is
 | --- | --- |
 | `/status` | Version, uptime, spend today against the budget, next scheduled jobs |
 | `/export` | Send your preferences, history and model usage as a JSON file |
+| `/settings` | Which check-ins are on, the daily limit and quiet hours. To change them, tell Kest ("fewer messages", "no evening check-in") |
 | `/forget` | Delete conversation history and preferences, after a button confirmation that expires in 10 minutes |
+| `/lockdown` | Refuse every tool that writes, deletes or sends, and stop all unprompted messages, until Kest restarts |
 | `/help` | List of commands |
-
-`/settings` and `/lockdown` are planned; see the roadmap.
 
 ## Approvals
 

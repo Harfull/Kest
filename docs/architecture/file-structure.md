@@ -81,21 +81,21 @@ Kest/
 │   │   ├── dst.go                    wall-clock to UTC rules
 │   │   └── store.go                  job persistence
 │   │
-│   ├── coach/                        coaching engine                        (P3)
-│   │   ├── coach.go                  module registry, event handling
-│   │   ├── module.go                 Module interface
-│   │   ├── habit/                    habits, if-then plans, logs
-│   │   ├── consistency/              rolling adherence, "never miss twice"
-│   │   ├── checkin/                  morning, midday, evening, weekly review
-│   │   ├── sleep/                    events, inference, quiet hours         (P3)
+│   ├── coach/                        coaching engine
+│   │   ├── coach.go                  Coach, preferences, sleep signals, nights
+│   │   ├── tick.go                   what is due now, budget check, sending
+│   │   ├── callbacks.go              button presses
+│   │   ├── tools.go                  agent tools, prompt context, /settings text
+│   │   ├── habit/                    cadence, windows, rolling consistency, lapse levels
+│   │   ├── sleep/                    events, inference, learned offsets, quiet hours
+│   │   ├── budget/                   notification budget, cooldowns, back-off
+│   │   ├── messages/                 templates as data (messages.toml)
+│   │   ├── module.go                 Module interface                       (P4)
 │   │   ├── workout/                  plans, logging, recovery               (P4)
 │   │   ├── nutrition/                meal logging, gentle targets           (P4)
 │   │   ├── focus/                    tasks, procrastination support         (P4)
-│   │   ├── lapse/                    miss handling protocol
-│   │   ├── budget/                   notification budget and cooldowns
 │   │   ├── adapt/                    timing adaptation from responsiveness  (P5)
-│   │   ├── experiments/              message variants, consent-based tests  (P5)
-│   │   └── messages/                 templates as data, by tone and type
+│   │   └── experiments/              message variants, consent-based tests  (P5)
 │   │
 │   └── plugin/                       plugin framework
 │       ├── plugin.go                 Plugin, Tool, Risk, JobProvider
