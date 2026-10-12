@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -215,10 +216,11 @@ func TestPluginNudgesGoThroughTheCoachBudget(t *testing.T) {
 
 	// 12:00 UTC is outside the default quiet hours, so the first nudge goes out;
 	// a second right after falls inside the minimum gap and is dropped.
-	for range 2 {
-		if err := host.Notify(context.Background(), plugin.Notification{Text: "New email from Dana."}); err != nil {
-			t.Fatal(err)
-		}
+	if err := host.Notify(context.Background(), plugin.Notification{Text: "New email from Dana."}); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.Notify(context.Background(), plugin.Notification{Text: "New email from Dana."}); !errors.Is(err, plugin.ErrNotSent) {
+		t.Fatalf("a held-back nudge reported %v, want ErrNotSent", err)
 	}
 	got := e.fake.Snapshot()
 	if len(got) != 1 || got[0].Text != "New email from Dana." {

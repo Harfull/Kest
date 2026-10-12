@@ -193,3 +193,8 @@ type Factory func() Plugin
 
 // ErrNotFound is returned by KV and Jobs for missing items.
 var ErrNotFound = errors.New("not found")
+
+// ErrNotSent is returned by Host.Notify when a non-urgent message was held back
+// by the notification budget (quiet hours, daily cap, minimum gap). The message
+// is dropped; a plugin that still cares should try again later.
+var ErrNotSent = errors.New("notification held back")

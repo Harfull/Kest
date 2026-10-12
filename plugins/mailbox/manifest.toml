@@ -1,0 +1,47 @@
+id = "mailbox"
+name = "Mailbox"
+version = "0.1.0"
+description = "Read, search, draft and send email through any IMAP and SMTP mailbox."
+
+[capabilities]
+network = ["*"]
+secrets = ["MAILBOX_PASSWORD"]
+jobs = true
+
+[config]
+imap_host = { type = "string", required = true }
+imap_port = { type = "int", default = 993 }
+imap_tls = { type = "string", default = "implicit" }
+smtp_host = { type = "string", required = true }
+smtp_port = { type = "int", default = 465 }
+smtp_tls = { type = "string", default = "implicit" }
+username = { type = "string", required = true }
+from_address = { type = "string", default = "" }
+from_name = { type = "string", default = "" }
+folder = { type = "string", default = "INBOX" }
+drafts_folder = { type = "string", default = "Drafts" }
+max_chars = { type = "int", default = 6000 }
+nudges = { type = "bool", default = false }
+nudge_minutes = { type = "int", default = 15 }
+nudge_from = { type = "string", default = "" }
+nudge_subject_words = { type = "string", default = "" }
+
+[[tools]]
+name = "search_mail"
+risk = "read"
+
+[[tools]]
+name = "read_mail"
+risk = "read"
+
+[[tools]]
+name = "draft_mail"
+risk = "write"
+
+[[tools]]
+name = "send_mail"
+risk = "destructive"
+
+[[tools]]
+name = "mark_mail_read"
+risk = "write"

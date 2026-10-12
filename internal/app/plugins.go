@@ -162,7 +162,10 @@ func (c *chat) notify(ctx context.Context, n plugin.Notification) error {
 	if !n.Urgent {
 		// A plugin's own idea of something worth saying goes through the same
 		// budget as the daily rhythm: quiet hours, the daily cap and the gap.
-		_, err := c.coach.Nudge(ctx, n.Source, n.Text)
+		sent, err := c.coach.Nudge(ctx, n.Source, n.Text)
+		if err == nil && !sent {
+			return plugin.ErrNotSent
+		}
 		return err
 	}
 	_, err := c.tr.Send(ctx, telegram.Reply{ChatID: c.ownerChat, Text: n.Text})

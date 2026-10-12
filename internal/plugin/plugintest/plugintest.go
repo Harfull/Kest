@@ -130,6 +130,12 @@ type Host struct {
 	Store    *MemKV
 	JobStore *MemJobs
 	Client   *http.Client
+	// NotifyErr, if set, is returned by Notify instead of recording the
+	// notification, to test a plugin's reaction to a held-back message.
+	NotifyErr error
+	// AllowLoopback lets DialContext reach 127.0.0.1, so a plugin can be tested
+	// against a fake server. Production hosts never allow it.
+	AllowLoopback bool
 
 	mu     sync.Mutex
 	notes  []plugin.Notification
@@ -173,6 +179,10 @@ func (h *Host) HTTP() *http.Client { return h.Client }
 
 // DialContext implements plugin.Host with the production network guard.
 func (h *Host) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	if h.AllowLoopback {
+		var d net.Dialer
+		return d.DialContext(ctx, network, address)
+	}
 	return plugin.DialContext(ctx, []string{"*"}, network, address)
 }
 
@@ -196,6 +206,9 @@ func (h *Host) Secret(name string) (string, error) {
 func (h *Host) Notify(_ context.Context, n plugin.Notification) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.NotifyErr != nil {
+		return h.NotifyErr
+	}
 	h.notes = append(h.notes, n)
 	return nil
 }

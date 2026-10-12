@@ -72,7 +72,8 @@ func discover(dir string) ([]string, error) {
 
 	var ids []string
 	for _, e := range entries {
-		if !e.IsDir() || e.Name() == "all" {
+		// "all" is generated and "internal" holds code the plugins share; neither is a plugin.
+		if !e.IsDir() || e.Name() == "all" || e.Name() == "internal" {
 			continue
 		}
 		if err := validate(filepath.Join(dir, e.Name()), e.Name()); err != nil {
