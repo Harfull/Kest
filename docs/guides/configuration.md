@@ -4,7 +4,7 @@ Kest reads configuration in layers. Later layers win.
 
 1. Built-in defaults
 2. `config.toml` (default location: `<data dir>/config.toml`, or the path in `KEST_CONFIG` or `--config`)
-3. `KEST_*` environment variables (blank values are ignored)
+3. `KEST_*` environment variables (blank values are ignored). For local runs, a `.env` file in the working directory supplies any variable the real environment leaves unset
 
 Unknown keys in `config.toml` are an error, so typos are caught at startup. All problems are reported together. Examples: [config.example.toml](../../config.example.toml) and [.env.example](../../.env.example). Both are checked by tests so they cannot drift from the code.
 

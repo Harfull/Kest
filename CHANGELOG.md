@@ -6,6 +6,7 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A `.env` file in the working directory is read for local runs. Real environment variables still win.
 - The coach: habits with if-then plans and a tiny version, rolling consistency instead of streaks, a gentle lapse protocol, and a daily rhythm of morning check-in, habit prompts, evening log and a Sunday review, with an opt-in wind-down.
 - A notification budget: a daily cap, cooldowns, no messages in quiet hours, and a back-off ladder that asks "message less?" when messages go unanswered.
 - A sleep model that learns from bedtime and wake messages, chat gaps and button confirmations, and sets quiet hours from them. Estimates are always approximate.

@@ -36,12 +36,19 @@ func run() error {
 		return nil
 	}
 
-	path := *configPath
-	if path == "" {
-		path = config.Path(os.LookupEnv)
+	// A .env file in the working directory fills in variables the environment
+	// leaves unset, for running locally. Hosts like Pterodactyl set real ones.
+	lookup, err := config.WithDotEnv(".env", os.LookupEnv)
+	if err != nil {
+		return err
 	}
 
-	cfg, err := config.Load(path, os.LookupEnv)
+	path := *configPath
+	if path == "" {
+		path = config.Path(lookup)
+	}
+
+	cfg, err := config.Load(path, lookup)
 	if err != nil {
 		return fmt.Errorf("configuration:\n%w", err)
 	}
@@ -60,7 +67,7 @@ func run() error {
 		return err
 	}
 
-	a, err := app.New(cfg, log)
+	a, err := app.New(cfg, log, app.WithEnv(lookup))
 	if err != nil {
 		return err
 	}
