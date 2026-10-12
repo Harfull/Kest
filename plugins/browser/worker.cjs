@@ -4,6 +4,27 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
+function launchError(error) {
+  const message = typeof error?.message === 'string' ? error.message : '';
+  if (/No usable sandbox|Failed to move to new namespace|Running as root without --no-sandbox|namespace.*Operation not permitted|zygote_host_impl_linux.*Operation not permitted/i.test(message))
+    return 'Chromium sandbox is unavailable. Check the node seccomp, AppArmor and user namespace settings.';
+  if (/Executable doesn.t exist|executable.*ENOENT/i.test(message))
+    return 'Chromium executable is missing. Install the browser matching the pinned Playwright version.';
+  if (/error while loading shared libraries|Host system is missing dependencies/i.test(message))
+    return 'Chromium system libraries are missing. Use the browser runtime image.';
+  if (/Missing X server|cannot open display/i.test(message))
+    return 'Chromium has no display. Enable headless mode or start the desktop runtime.';
+  if (/ProcessSingleton|SingletonLock|profile.*in use/i.test(message))
+    return 'Chromium profile is already in use. Stop other workers using this profile.';
+  if (error?.code === 'EACCES' || /Permission denied/i.test(message))
+    return 'Chromium cannot access its files. Check browser data and executable permissions.';
+  return 'Chromium could not launch. Run the container launch diagnostic to inspect its runtime.';
+}
+
+class LaunchFailure extends Error {
+  constructor(error) { super(launchError(error)); }
+}
+
 function publicURL(raw) {
   const u = new URL(raw);
   if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password)
@@ -70,7 +91,8 @@ function makeSession(config, chromium) {
     if (context) return;
     for (const name of ['profile', 'inbox', 'screenshots'])
       await fs.mkdir(path.join(config.dir, name), { recursive: true, mode: 0o700 });
-    context = await chromium.launchPersistentContext(path.join(config.dir, 'profile'), {
+    try {
+      context = await chromium.launchPersistentContext(path.join(config.dir, 'profile'), {
       headless: config.headless, chromiumSandbox: config.sandbox,
       proxy: { server: config.proxy, username: config.username, password: config.password, bypass: '<-loopback>' },
       serviceWorkers: 'block', acceptDownloads: false, viewport: { width: 1280, height: 800 },
@@ -78,7 +100,8 @@ function makeSession(config, chromium) {
       args: ['--disable-dev-shm-usage', '--disable-quic', '--disable-background-networking',
         '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', '--disable-extensions',
         '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'],
-    });
+      });
+    } catch (error) { throw new LaunchFailure(error); }
     context.setDefaultTimeout(config.timeout);
     context.setDefaultNavigationTimeout(config.timeout);
     // Every browser HTTP connection goes through the authenticated Go proxy,
@@ -151,13 +174,14 @@ async function main() {
         const { action, args } = JSON.parse(line);
         const content = await session.run(action, args);
         process.stdout.write(JSON.stringify({ content }) + '\n');
-      } catch {
+      } catch (error) {
         // Raw Playwright errors include page content and typed secrets.
-        process.stdout.write(JSON.stringify({ error: 'Browser action could not complete. Check the tab, selector, network policy and runtime setup.' }) + '\n');
+        const message = error instanceof LaunchFailure ? error.message : 'Browser action could not complete. Check the tab, selector, network policy and runtime setup.';
+        process.stdout.write(JSON.stringify({ error: message }) + '\n');
       }
     }).catch(() => { process.stdout.write(JSON.stringify({ error: 'Browser runtime unavailable. Check Playwright installation and Chromium sandbox support.' }) + '\n'); });
   });
 }
 
-module.exports = { publicURL, inboxFile, makeSession };
+module.exports = { publicURL, inboxFile, makeSession, launchError };
 if (require.main === module || process.argv[1] === undefined) void main();

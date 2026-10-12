@@ -93,6 +93,28 @@ This binds the forwarder only to the node's loopback and reaches noVNC inside th
 
 ## Data, updates and troubleshooting
 
+To isolate a launch failure, run the following in the VPS SSH shell (not the bot's panel console). Get the server container ID with `docker ps --format '{{.ID}}  {{.Image}}  {{.Names}}`, then replace `SERVER_CONTAINER_ID`. This uses a temporary profile, performs no navigation, and passes no bot credentials to Chromium.
+
+```bash
+docker exec -i SERVER_CONTAINER_ID node <<'JS'
+const { chromium } = require('/opt/kest-browser/node_modules/playwright');
+(async () => {
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: true, chromiumSandbox: true,
+      args: ['--disable-dev-shm-usage'],
+      env: { PATH: process.env.PATH, HOME: '/tmp', PLAYWRIGHT_BROWSERS_PATH: '/ms-playwright' },
+    });
+    console.log('Chromium launch OK');
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  } finally { if (browser) await browser.close(); }
+})();
+JS
+```
+
 `<data dir>/plugins/browser/profile/` persists logins; `inbox/` accepts owner upload candidates; `screenshots/` stores private PNG files. Back up the whole data directory while Kest is stopped. SQLite-only `/export` and nightly DB backups do not cover Chromium. Do not share profiles with your everyday browser or run two workers on one profile. Prune screenshots manually when they are no longer needed.
 
 | Symptom | Action |

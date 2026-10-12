@@ -6,6 +6,8 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Fixed
 
+- Report safe, specific Chromium launch errors for sandbox, missing browser/libraries, display, profile-lock and permission problems, rather than hiding them behind a generic tool error.
+
 - Use a plain Docker image reference in the browser egg, avoiding `invalid reference format` when a daemon does not process Wings' special local-image prefix.
 
 - Include the secrets configuration Go source in Git and Docker builds; broad secret-file ignore rules previously omitted it and caused undefined configuration symbols in fresh checkouts.

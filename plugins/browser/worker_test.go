@@ -37,7 +37,7 @@ func TestWorkerStripsAmbientCredentials(t *testing.T) {
 	if err == nil {
 		t.Fatal("fixture should reject launch")
 	}
-	if err.Error() != "Browser action could not complete. Check the tab, selector, network policy and runtime setup." {
+	if err.Error() != "Chromium could not launch. Run the container launch diagnostic to inspect its runtime." {
 		t.Fatalf("unsanitized error: %v", err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "environment.txt"))

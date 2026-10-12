@@ -3,7 +3,24 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { publicURL, inboxFile } = require('./worker.cjs');
+const { publicURL, inboxFile, launchError } = require('./worker.cjs');
+
+test('launch diagnostics identify runtime failures without exposing raw values', () => {
+  for (const [input, expected] of [
+    ['No usable sandbox! secret-token', 'sandbox is unavailable'],
+    ['Failed to move to new namespace: Operation not permitted secret-token', 'sandbox is unavailable'],
+    ["Executable doesn't exist: /private/secret-token", 'executable is missing'],
+    ['error while loading shared libraries: secret-token', 'system libraries are missing'],
+    ['Missing X server or $DISPLAY secret-token', 'has no display'],
+    ['ProcessSingleton secret-token', 'profile is already in use'],
+    ['Permission denied secret-token', 'cannot access its files'],
+    ['unexpected private browser failure secret-token', 'could not launch'],
+  ]) {
+    const output = launchError(new Error(input));
+    assert.ok(output.includes(expected));
+    assert.ok(!output.includes('secret-token'));
+  }
+});
 
 test('navigation permits web URLs without credentials', () => {
   assert.equal(publicURL('https://example.com'), 'https://example.com/');
