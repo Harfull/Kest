@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -568,8 +569,8 @@ func TestSpeakDoesNotRememberADefaultVoiceThatAlsoFails(t *testing.T) {
 	if n != 2 {
 		t.Errorf("requests = %d, want the configured voice then none", n)
 	}
-	if _, remembered := h.client.ttsNoVoice.Load("test/tts"); remembered {
-		t.Error("a failed attempt without a voice was remembered")
+	if _, remembered := h.client.ttsVoice.Load("test/tts"); remembered {
+		t.Error("a failed attempt was remembered")
 	}
 }
 
@@ -680,5 +681,56 @@ func TestMessageJSONRoundTrip(t *testing.T) {
 	}
 	if out.Content != "" || len(out.ToolCalls) != 1 {
 		t.Errorf("round trip = %+v", out)
+	}
+}
+
+func TestSpeakFallsBackToTheBuiltInVoiceForTheModel(t *testing.T) {
+	// The configured voice belongs to another provider, and this one insists on a voice.
+	var voices []any
+	h := newHarness(t, func(w http.ResponseWriter, r *http.Request) {
+		body := readJSON(t, r)
+		voices = append(voices, body["voice"])
+		if body["voice"] != "Kore" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"error":{"message":"An explicit voice is required for this TTS provider."}}`)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("ID3"))
+	}, func(o *Options) { o.TTS = "google/some-tts" })
+
+	if _, err := h.client.Speak(context.Background(), "Hello"); err != nil {
+		t.Fatalf("Speak() error = %v", err)
+	}
+	if len(voices) != 2 || voices[0] != "alloy" || voices[1] != "Kore" {
+		t.Errorf("voices sent = %v, want alloy then Kore", voices)
+	}
+
+	voices = nil
+	if _, err := h.client.Speak(context.Background(), "Again"); err != nil {
+		t.Fatal(err)
+	}
+	if len(voices) != 1 || voices[0] != "Kore" {
+		t.Errorf("second call voices = %v, want Kore straight away", voices)
+	}
+}
+
+func TestVoiceCandidates(t *testing.T) {
+	tests := []struct {
+		name, model, configured string
+		want                    []string
+	}{
+		{"configured then built-in then none", "google/x", "Puck", []string{"Puck", "Kore", ""}},
+		{"no repeats", "google/x", "Kore", []string{"Kore", ""}},
+		{"nothing configured", "hexgrad/x", "", []string{"af_heart", ""}},
+		{"unknown model", "other/x", "v", []string{"v", ""}},
+		{"nothing at all", "other/x", "", []string{""}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := voiceCandidates(tt.model, tt.configured); !slices.Equal(got, tt.want) {
+				t.Errorf("voiceCandidates() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

@@ -70,9 +70,9 @@ type Client struct {
 
 	// ttsFormat remembers, per speech model, the format it accepted.
 	ttsFormat sync.Map
-	// ttsNoVoice marks speech models that rejected the configured voice but
-	// worked with the provider's default.
-	ttsNoVoice sync.Map
+	// ttsVoice remembers, per speech model, the voice that worked: the configured
+	// one, the built-in default for the model, or none.
+	ttsVoice sync.Map
 }
 
 // New validates opts, fills defaults and returns a Client.

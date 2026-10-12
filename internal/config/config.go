@@ -113,9 +113,9 @@ func Defaults() Config {
 			Models: Models{
 				General:       "google/gemini-3-flash-preview",
 				Transcription: "openai/gpt-4o-mini-transcribe",
-				TTS:           "openai/gpt-4o-mini-tts-2025-12-15",
+				TTS:           "google/gemini-3.1-flash-tts-preview",
 			},
-			TTSVoice:       "alloy",
+			TTSVoice:       "Kore",
 			DailyBudgetUSD: 1.00,
 		},
 		EnabledPlugins: []string{"reminders", "tasks", "webfetch"},

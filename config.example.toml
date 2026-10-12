@@ -17,7 +17,7 @@ owner_ids = []              # e.g. [123456789]; prefer KEST_OWNER_ID
 [llm]
 # api_key = ""              # prefer KEST_OPENROUTER_API_KEY
 base_url = "https://openrouter.ai/api/v1"
-tts_voice = "alloy"
+tts_voice = "Kore"
 daily_budget_usd = 1.0      # 0 disables the guard
 zdr_only = false            # route only to zero-data-retention providers
 
@@ -25,7 +25,7 @@ zdr_only = false            # route only to zero-data-retention providers
 general = "google/gemini-3-flash-preview"
 fallbacks = []              # e.g. ["provider/model-a", "provider/model-b"]
 transcription = "openai/gpt-4o-mini-transcribe"
-tts = "openai/gpt-4o-mini-tts-2025-12-15"
+tts = "google/gemini-3.1-flash-tts-preview"
 
 [coach]
 max_proactive_per_day = 3   # 0 to 20

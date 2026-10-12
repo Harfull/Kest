@@ -4,6 +4,10 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The default text-to-speech model is now `google/gemini-3.1-flash-tts-preview` with the voice `Kore`, because the previous default no longer exists on OpenRouter. Speech models need an explicit voice, so Kest also falls back to a built-in voice for the model family when the configured one is rejected.
+
 ### Added
 
 - A `.env` file in the working directory is read for local runs. Real environment variables still win.

@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -139,15 +140,22 @@ func (c *Client) Speak(ctx context.Context, text string) (*Speech, error) {
 	}
 	tried := map[string]bool{}
 
-	// Voices differ per model. If one was rejected before, go without it.
-	_, voiceDropped := c.ttsNoVoice.Load(c.o.TTS)
-	voiceWasRemembered := voiceDropped
+	// Voices differ per model, and some providers insist on one. Try the configured
+	// voice, then the built-in default for the model, then none; start from the
+	// one that worked last time.
+	voices := voiceCandidates(c.o.TTS, c.o.TTSVoice)
+	vi := 0
+	if v, ok := c.ttsVoice.Load(c.o.TTS); ok {
+		if i := slices.Index(voices, v.(string)); i >= 0 {
+			vi = i
+		}
+	}
 
 	for {
 		tried[format] = true
 		payload := map[string]any{"model": c.o.TTS, "input": text, "response_format": format}
-		if c.o.TTSVoice != "" && !voiceDropped {
-			payload["voice"] = c.o.TTSVoice
+		if voices[vi] != "" {
+			payload["voice"] = voices[vi]
 		}
 		body, header, err := c.do(ctx, "/audio/speech", payload)
 		if err == nil {
@@ -159,9 +167,7 @@ func (c *Client) Speak(ctx context.Context, text string) (*Speech, error) {
 				return nil, err
 			}
 			c.ttsFormat.Store(c.o.TTS, sp.Format)
-			if voiceDropped && !voiceWasRemembered {
-				c.ttsNoVoice.Store(c.o.TTS, true)
-			}
+			c.ttsVoice.Store(c.o.TTS, voices[vi])
 			c.record(ctx, "tts", c.o.TTS, Usage{}, header.Get("X-Generation-Id"))
 			return sp, nil
 		}
@@ -176,11 +182,10 @@ func (c *Client) Speak(ctx context.Context, text string) (*Speech, error) {
 			format = next
 			continue
 		}
-		if mentionsVoiceRe.MatchString(apiErr.Message) && c.o.TTSVoice != "" && !voiceDropped {
-			// Try the provider's default voice before giving up.
-			c.o.Logf(ctx, "text-to-speech model rejected the voice; trying its default",
-				"model", c.o.TTS, "voice", c.o.TTSVoice, "reason", apiErr.Message)
-			voiceDropped = true
+		if mentionsVoiceRe.MatchString(apiErr.Message) && vi < len(voices)-1 {
+			c.o.Logf(ctx, "text-to-speech model rejected the voice; trying the next",
+				"model", c.o.TTS, "voice", voices[vi], "reason", apiErr.Message)
+			vi++
 			continue
 		}
 		if mentionsVoiceRe.MatchString(apiErr.Message) {
@@ -189,6 +194,35 @@ func (c *Client) Speak(ctx context.Context, text string) (*Speech, error) {
 		}
 		return nil, err
 	}
+}
+
+// builtinVoice returns a voice known to work for a speech model family, or "".
+// Verified against OpenRouter in October 2026; voices differ per model, so this
+// is only a safety net for when the configured voice does not fit the model.
+func builtinVoice(model string) string {
+	switch {
+	case strings.HasPrefix(model, "google/"):
+		return "Kore"
+	case strings.HasPrefix(model, "hexgrad/"):
+		return "af_heart"
+	case strings.HasPrefix(model, "mistralai/"):
+		return "en_paul_neutral"
+	case strings.HasPrefix(model, "openai/"):
+		return "alloy"
+	}
+	return ""
+}
+
+// voiceCandidates lists the voices to try in order, without repeats. The empty
+// string means sending no voice and ends the list.
+func voiceCandidates(model, configured string) []string {
+	var out []string
+	for _, v := range []string{configured, builtinVoice(model)} {
+		if v != "" && !slices.Contains(out, v) {
+			out = append(out, v)
+		}
+	}
+	return append(out, "")
 }
 
 // alternativeFormat picks the format to try after a 400 about response_format:
