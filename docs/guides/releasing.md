@@ -41,7 +41,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which:
    git push origin v0.1.0-beta.2
    ```
 
-5. Watch the Release workflow, then open the release page and check the five assets are attached.
+5. Watch the Release workflow, then open the release page and check the four assets are attached (two binaries, `checksums.txt`, `egg-kest.json`).
 
 To retract a bad beta, delete the GitHub release and the tag, and publish the next number. Never reuse a tag.
 
