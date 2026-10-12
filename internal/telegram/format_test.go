@@ -18,6 +18,12 @@ func TestToHTML(t *testing.T) {
 		{"unmatched bold stays literal", "2 ** 3", "2 ** 3"},
 		{"bold content is escaped", "**<b>**", "<b>&lt;b&gt;</b>"},
 		{"quotes escaped", `say "hi"`, "say &#34;hi&#34;"},
+		{"link", "see [the docs](https://example.com/a?b=1&c=2) now", `see <a href="https://example.com/a?b=1&amp;c=2">the docs</a> now`},
+		{"link label can be bold", "[**x**](https://example.com)", `<a href="https://example.com"><b>x</b></a>`},
+		{"only web links", "[x](javascript:alert(1)) [y](ftp://example.com)", "[x](javascript:alert(1)) [y](ftp://example.com)"},
+		{"link cannot break out", `[x](https://e.com/"onmouseover="alert(1))`, "[x](https://e.com/&#34;onmouseover=&#34;alert(1))"},
+		{"code is left alone", "`[a](https://example.com) **b**`", "<code>[a](https://example.com) **b**</code>"},
+		{"placeholder lookalikes are removed", "\x000\x00 `code`", "0 <code>code</code>"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

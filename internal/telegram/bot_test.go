@@ -84,7 +84,7 @@ func (f *fakeAPI) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(`{"message_id":77,"chat":{"id":42,"type":"private"},"date":1}`)
-	case "sendVoice":
+	case "sendVoice", "sendPhoto", "sendDocument":
 		reply(`{"message_id":78,"chat":{"id":42,"type":"private"},"date":1}`)
 	case "getFile":
 		reply(fmt.Sprintf(`{"file_id":"f1","file_size":%d,"file_path":"voice/file_1.oga"}`, f.fileSize))
@@ -418,4 +418,44 @@ func encodeForm(contentType string, body []byte) string {
 	}
 	out, _ := json.Marshal(fields)
 	return string(out)
+}
+
+func TestNormalizesRepliesAndPhotos(t *testing.T) {
+	f := newFakeAPI(t)
+	b := newBot(t, f)
+	got := run(t, b)
+
+	bot := `{"id":900,"is_bot":true,"first_name":"Kest"}`
+	owner := `{"id":42,"is_bot":false,"first_name":"x"}`
+	chat := `{"id":42,"type":"private"}`
+
+	// A reply to one of Kest's own messages.
+	f.queue(privateMsg(1, 42, `"text":"yes that one","reply_to_message":{"message_id":9,"date":1,"from":`+bot+`,"chat":`+chat+`,"text":"Shall I book the 9am slot?"}`))
+	// A reply that quotes a highlighted part, to a message the owner forwarded.
+	f.queue(privateMsg(2, 42, `"text":"what is this?","quote":{"text":"only this bit","position":0},"reply_to_message":{"message_id":10,"date":1,"from":`+owner+`,"chat":`+chat+`,"text":"the whole long message","forward_origin":{"type":"hidden_user","date":1,"sender_user_name":"Someone"}}`))
+	// A photo with a caption; the largest size under the limit is chosen.
+	f.queue(privateMsg(3, 42, `"caption":"is this right?","photo":[{"file_id":"small","file_unique_id":"a","width":90,"height":90,"file_size":2000},{"file_id":"big","file_unique_id":"b","width":1280,"height":720,"file_size":90000},{"file_id":"huge","file_unique_id":"c","width":4000,"height":3000,"file_size":9000000}]`))
+	// A reply to a screenshot Kest sent.
+	f.queue(privateMsg(4, 42, `"text":"zoom in","reply_to_message":{"message_id":11,"date":1,"from":`+bot+`,"chat":`+chat+`,"caption":"The cart","photo":[{"file_id":"shot","file_unique_id":"d","width":800,"height":600,"file_size":5000}]}`))
+	f.queue(privateMsg(5, 42, `"text":"plain"`))
+
+	u := next(t, got)
+	if u.Text != "yes that one" || u.ReplyTo == nil || !u.ReplyTo.FromBot || u.ReplyTo.Forwarded || u.ReplyTo.Text != "Shall I book the 9am slot?" || u.ReplyTo.MessageID != 9 {
+		t.Errorf("reply to Kest = %+v / %+v", u, u.ReplyTo)
+	}
+	u = next(t, got)
+	if u.ReplyTo == nil || u.ReplyTo.FromBot || !u.ReplyTo.Forwarded || u.ReplyTo.Text != "only this bit" {
+		t.Errorf("reply to forwarded text = %+v", u.ReplyTo)
+	}
+	u = next(t, got)
+	if u.Photo == nil || u.Photo.FileID != "big" || u.Text != "is this right?" {
+		t.Errorf("photo = %+v text %q", u.Photo, u.Text)
+	}
+	u = next(t, got)
+	if u.ReplyTo == nil || u.ReplyTo.Text != "The cart" || u.ReplyTo.Photo == nil || u.ReplyTo.Photo.FileID != "shot" {
+		t.Errorf("reply to a screenshot = %+v", u.ReplyTo)
+	}
+	if u = next(t, got); u.ReplyTo != nil || u.Photo != nil {
+		t.Errorf("plain message gained context: %+v", u)
+	}
 }

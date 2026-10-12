@@ -16,10 +16,12 @@ type Fake struct {
 	sent     []Reply
 	voices   []FakeVoice
 	docs     []FakeDoc
+	photos   []FakePhoto
 	acks     []string
 	cleared  []int
 	commands []Command
 	nextID   int
+	typings  int
 
 	// Files maps file IDs to content for Download. Set it before Run.
 	Files map[string][]byte
@@ -39,6 +41,28 @@ type FakeDoc struct {
 	Filename string
 	Data     []byte
 	Caption  string
+}
+
+// FakePhoto records a photo sent through a Fake.
+type FakePhoto struct {
+	ChatID  int64
+	Data    []byte
+	Caption string
+}
+
+// SendPhoto records an independent copy of the image bytes.
+func (f *Fake) SendPhoto(_ context.Context, chatID int64, data []byte, caption string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.photos = append(f.photos, FakePhoto{ChatID: chatID, Data: append([]byte(nil), data...), Caption: caption})
+	return nil
+}
+
+// Photos returns the photos sent so far.
+func (f *Fake) Photos() []FakePhoto {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]FakePhoto(nil), f.photos...)
 }
 
 var _ Transport = (*Fake)(nil)
@@ -93,8 +117,27 @@ func (f *Fake) SendDocument(_ context.Context, chatID int64, filename string, da
 	return nil
 }
 
-// Typing does nothing.
-func (f *Fake) Typing(context.Context, int64, bool) error { return nil }
+// Typing counts the indicator.
+func (f *Fake) Typing(context.Context, int64, bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.typings++
+	return nil
+}
+
+// Typings returns how many typing indicators were requested.
+func (f *Fake) Typings() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.typings
+}
+
+// Acks returns the callback acknowledgement texts so far.
+func (f *Fake) Acks() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.acks...)
+}
 
 // Download returns the bytes registered in Files.
 func (f *Fake) Download(_ context.Context, fileID string) ([]byte, error) {

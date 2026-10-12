@@ -125,16 +125,19 @@ func (t *Bot) normalize(upd *models.Update) (Update, bool) {
 			t.dropped.Add(1)
 			return Update{}, false
 		}
-		u := Update{ChatID: m.Chat.ID, UserID: m.From.ID, MessageID: m.ID}
+		u := Update{ChatID: m.Chat.ID, UserID: m.From.ID, MessageID: m.ID, ReplyTo: quoted(m)}
 		switch {
 		case m.Voice != nil:
 			u.Voice = &Voice{FileID: m.Voice.FileID, Duration: m.Voice.Duration, MIMEType: m.Voice.MimeType, Size: m.Voice.FileSize}
+		case len(m.Photo) > 0:
+			u.Photo = pickPhoto(m.Photo)
+			u.Text = strings.TrimSpace(m.Caption)
 		case strings.HasPrefix(m.Text, "/"):
 			u.Command, u.Args = parseCommand(m.Text)
 		case strings.TrimSpace(m.Text) != "":
 			u.Text = m.Text
 		default:
-			return Update{}, false // photos, stickers and the like are not supported yet
+			return Update{}, false // stickers and the like are not supported yet
 		}
 		return u, true
 
@@ -155,6 +158,48 @@ func (t *Bot) normalize(upd *models.Update) (Update, bool) {
 		}, true
 	}
 	return Update{}, false
+}
+
+// maxPhotoInput is the largest photo Kest downloads to show a model. Telegram
+// offers several sizes of every photo; the biggest one under this is used.
+const maxPhotoInput = 5 << 20
+
+// pickPhoto chooses the largest size that is small enough to send to a model.
+func pickPhoto(sizes []models.PhotoSize) *Photo {
+	var best *models.PhotoSize
+	for i := range sizes {
+		s := &sizes[i]
+		if s.FileSize > maxPhotoInput {
+			continue
+		}
+		if best == nil || s.Width*s.Height > best.Width*best.Height {
+			best = s
+		}
+	}
+	if best == nil {
+		return nil // every size is too large; the text of the message still goes through
+	}
+	return &Photo{FileID: best.FileID, Size: int64(best.FileSize)}
+}
+
+// quoted describes the message m replies to, or nil.
+func quoted(m *models.Message) *Quoted {
+	r := m.ReplyToMessage
+	if r == nil {
+		return nil
+	}
+	q := &Quoted{MessageID: r.ID, FromBot: r.From != nil && r.From.IsBot, Forwarded: r.ForwardOrigin != nil}
+	q.Text = strings.TrimSpace(r.Text)
+	if q.Text == "" {
+		q.Text = strings.TrimSpace(r.Caption)
+	}
+	if m.Quote != nil && strings.TrimSpace(m.Quote.Text) != "" {
+		q.Text = strings.TrimSpace(m.Quote.Text) // the owner highlighted this part
+	}
+	if len(r.Photo) > 0 {
+		q.Photo = pickPhoto(r.Photo)
+	}
+	return q
 }
 
 // parseCommand splits "/Status@MyBot  now" into ("status", "now").

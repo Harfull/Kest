@@ -11,20 +11,44 @@ import (
 	"errors"
 )
 
-// Update is one thing the owner did: sent text, sent a voice note, ran a
-// command or pressed an inline button. Exactly one of Text, Voice, Command or
-// Callback is meaningful.
+// Update is one thing the owner did: sent text or a photo, sent a voice note,
+// ran a command or pressed an inline button. A photo arrives with its caption
+// as Text.
 type Update struct {
 	ChatID    int64
 	UserID    int64
 	MessageID int
 
-	Text    string // plain message text, empty for commands and voice notes
+	Text    string // plain message text or photo caption, empty for commands and voice notes
 	Command string // lower-case command without slash or @bot suffix, e.g. "status"
 	Args    string // text after the command
 
 	Voice    *Voice
+	Photo    *Photo
 	Callback *Callback
+	// ReplyTo is the message the owner replied to, if they used Telegram's reply.
+	ReplyTo *Quoted
+}
+
+// Photo is an image the owner sent, or that was in a message they replied to.
+// Fetch the pixels with Transport.Download.
+type Photo struct {
+	FileID string
+	Size   int64 // bytes, may be zero if Telegram did not report it
+}
+
+// Quoted is the message an update replies to.
+type Quoted struct {
+	MessageID int
+	// FromBot is true when the quoted message was one of Kest's own.
+	FromBot bool
+	// Forwarded is true when the quoted message was forwarded from somewhere
+	// else, so its text is not the owner's own.
+	Forwarded bool
+	// Text is the message text or photo caption, or the part of it the owner
+	// selected when replying.
+	Text  string
+	Photo *Photo
 }
 
 // Voice describes a voice note. Fetch the audio with Transport.Download.
@@ -84,6 +108,9 @@ type Transport interface {
 	SendVoice(ctx context.Context, chatID int64, audio []byte, ext string, silent bool) error
 	// SendDocument posts a file, such as a data export.
 	SendDocument(ctx context.Context, chatID int64, filename string, data []byte, caption string) error
+	// SendPhoto posts an image with a caption, falling back to a lossless document
+	// when its dimensions exceed Telegram's photo limits.
+	SendPhoto(ctx context.Context, chatID int64, data []byte, caption string) error
 	// Typing shows "typing…" (or "recording voice…") for a few seconds.
 	Typing(ctx context.Context, chatID int64, recording bool) error
 	// Download fetches a file, such as a voice note, up to Telegram's 20 MB limit.

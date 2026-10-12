@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -20,16 +21,29 @@ const (
 var (
 	boldRe = regexp.MustCompile(`\*\*([^*\n]+?)\*\*`)
 	codeRe = regexp.MustCompile("`([^`\n]+?)`")
+	// linkRe matches [label](https://address) after escaping, so the address can
+	// never contain a tag or a quote.
+	linkRe = regexp.MustCompile(`\[([^\]\n]+?)\]\((https?://[^\s()]+)\)`)
 )
 
 // ToHTML converts Kest's light markup to Telegram HTML. All text is escaped
 // first, so model output or external content can never inject tags.
 //
-// Supported: **bold** and `code`. Anything unmatched stays literal.
+// Supported: **bold**, `code` and [label](https://address) links. Anything
+// unmatched stays literal. Code spans are set aside first so nothing inside
+// them is reinterpreted, which Telegram would reject.
 func ToHTML(s string) string {
-	s = html.EscapeString(s)
-	s = codeRe.ReplaceAllString(s, "<code>$1</code>")
+	s = html.EscapeString(strings.ReplaceAll(s, "\x00", ""))
+	var spans []string
+	s = codeRe.ReplaceAllStringFunc(s, func(m string) string {
+		spans = append(spans, "<code>"+m[1:len(m)-1]+"</code>")
+		return "\x00" + strconv.Itoa(len(spans)-1) + "\x00"
+	})
+	s = linkRe.ReplaceAllString(s, `<a href="$2">$1</a>`)
 	s = boldRe.ReplaceAllString(s, "<b>$1</b>")
+	for i, span := range spans {
+		s = strings.Replace(s, "\x00"+strconv.Itoa(i)+"\x00", span, 1)
+	}
 	return s
 }
 
