@@ -405,3 +405,23 @@ func TestConcurrentHandlersAreBounded(t *testing.T) {
 		t.Errorf("peak concurrency = %d, want <= 2", peak.Load())
 	}
 }
+
+func TestEnsureIsIdempotent(t *testing.T) {
+	r := newRig(t, base)
+	ctx := context.Background()
+	spec := Spec{Owner: "system", Name: "backup", Rule: "daily@03:30"}
+
+	created, err := r.s.Ensure(ctx, spec)
+	if err != nil || !created {
+		t.Fatalf("first Ensure() = %v, %v; want true, nil", created, err)
+	}
+	created, err = r.s.Ensure(ctx, spec)
+	if err != nil || created {
+		t.Fatalf("second Ensure() = %v, %v; want false, nil", created, err)
+	}
+
+	jobs, _ := r.s.Upcoming(ctx, 10)
+	if len(jobs) != 1 {
+		t.Errorf("jobs = %d, want 1", len(jobs))
+	}
+}

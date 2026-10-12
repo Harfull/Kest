@@ -231,6 +231,9 @@ func (s *Scheduler) Upcoming(ctx context.Context, n int) ([]Job, error) {
 // Run processes jobs until ctx is cancelled, then waits for running handlers.
 func (s *Scheduler) Run(ctx context.Context) error {
 	if err := s.recoverInterrupted(ctx); err != nil {
+		if ctx.Err() != nil {
+			return nil // shut down before starting: not a failure
+		}
 		return err
 	}
 
@@ -517,4 +520,23 @@ func newID() (string, error) {
 		return "", fmt.Errorf("generate job id: %w", err)
 	}
 	return hex.EncodeToString(b[:]), nil
+}
+
+// Ensure schedules spec unless a job with the same owner and name already
+// exists in any state. It makes startup registration of built-in jobs
+// idempotent, and reports whether a job was created.
+func (s *Scheduler) Ensure(ctx context.Context, spec Spec) (bool, error) {
+	var n int
+	err := s.db.Read().QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM jobs WHERE owner = ? AND name = ?", spec.Owner, spec.Name).Scan(&n)
+	if err != nil {
+		return false, fmt.Errorf("look up job %s/%s: %w", spec.Owner, spec.Name, err)
+	}
+	if n > 0 {
+		return false, nil
+	}
+	if _, err := s.Schedule(ctx, spec); err != nil {
+		return false, err
+	}
+	return true, nil
 }
