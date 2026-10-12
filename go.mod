@@ -6,6 +6,7 @@ require github.com/pelletier/go-toml/v2 v2.4.3
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-telegram/bot v1.27.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
