@@ -234,6 +234,19 @@ func (t *Bot) SendVoice(ctx context.Context, chatID int64, mp3 []byte, silent bo
 	return nil
 }
 
+// SendDocument posts a file.
+func (t *Bot) SendDocument(ctx context.Context, chatID int64, filename string, data []byte, caption string) error {
+	_, err := t.b.SendDocument(ctx, &tgbot.SendDocumentParams{
+		ChatID:   chatID,
+		Document: &models.InputFileUpload{Filename: filename, Data: bytes.NewReader(data)},
+		Caption:  caption,
+	})
+	if err != nil {
+		return fmt.Errorf("telegram: send document: %w", scrub(err, t.token))
+	}
+	return nil
+}
+
 // Typing shows a chat action for about five seconds.
 func (t *Bot) Typing(ctx context.Context, chatID int64, recording bool) error {
 	action := models.ChatActionTyping

@@ -6,20 +6,23 @@ import (
 )
 
 // Fake is an in-memory Transport for tests of code that talks to Telegram.
-// It is safe for concurrent use.
+// It is safe for concurrent use; read what was sent through the accessor
+// methods, which take a consistent snapshot.
 type Fake struct {
 	mu       sync.Mutex
 	handler  Handler
 	ready    chan struct{}
 	once     sync.Once
-	Sent     []Reply
-	Voices   []FakeVoice
-	Acks     []string
-	Cleared  []int
-	Typings  int
-	Commands []Command
-	Files    map[string][]byte
+	sent     []Reply
+	voices   []FakeVoice
+	docs     []FakeDoc
+	acks     []string
+	cleared  []int
+	commands []Command
 	nextID   int
+
+	// Files maps file IDs to content for Download. Set it before Run.
+	Files map[string][]byte
 }
 
 // FakeVoice records a voice message sent through a Fake.
@@ -27,6 +30,14 @@ type FakeVoice struct {
 	ChatID int64
 	Audio  []byte
 	Silent bool
+}
+
+// FakeDoc records a document sent through a Fake.
+type FakeDoc struct {
+	ChatID   int64
+	Filename string
+	Data     []byte
+	Caption  string
 }
 
 var _ Transport = (*Fake)(nil)
@@ -61,7 +72,7 @@ func (f *Fake) Send(_ context.Context, r Reply) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.nextID++
-	f.Sent = append(f.Sent, r)
+	f.sent = append(f.sent, r)
 	return f.nextID, nil
 }
 
@@ -69,17 +80,20 @@ func (f *Fake) Send(_ context.Context, r Reply) (int, error) {
 func (f *Fake) SendVoice(_ context.Context, chatID int64, mp3 []byte, silent bool) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Voices = append(f.Voices, FakeVoice{ChatID: chatID, Audio: mp3, Silent: silent})
+	f.voices = append(f.voices, FakeVoice{ChatID: chatID, Audio: mp3, Silent: silent})
 	return nil
 }
 
-// Typing counts chat actions.
-func (f *Fake) Typing(context.Context, int64, bool) error {
+// SendDocument records the document.
+func (f *Fake) SendDocument(_ context.Context, chatID int64, filename string, data []byte, caption string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Typings++
+	f.docs = append(f.docs, FakeDoc{ChatID: chatID, Filename: filename, Data: data, Caption: caption})
 	return nil
 }
+
+// Typing does nothing.
+func (f *Fake) Typing(context.Context, int64, bool) error { return nil }
 
 // Download returns the bytes registered in Files.
 func (f *Fake) Download(_ context.Context, fileID string) ([]byte, error) {
@@ -95,7 +109,7 @@ func (f *Fake) Download(_ context.Context, fileID string) ([]byte, error) {
 func (f *Fake) AnswerCallback(_ context.Context, _, text string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Acks = append(f.Acks, text)
+	f.acks = append(f.acks, text)
 	return nil
 }
 
@@ -103,7 +117,7 @@ func (f *Fake) AnswerCallback(_ context.Context, _, text string) error {
 func (f *Fake) ClearButtons(_ context.Context, _ int64, messageID int) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Cleared = append(f.Cleared, messageID)
+	f.cleared = append(f.cleared, messageID)
 	return nil
 }
 
@@ -111,13 +125,41 @@ func (f *Fake) ClearButtons(_ context.Context, _ int64, messageID int) error {
 func (f *Fake) SetCommands(_ context.Context, cmds []Command) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Commands = cmds
+	f.commands = cmds
 	return nil
 }
 
-// Snapshot returns a copy of the sent replies.
+// Snapshot returns the replies sent so far.
 func (f *Fake) Snapshot() []Reply {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]Reply(nil), f.Sent...)
+	return append([]Reply(nil), f.sent...)
+}
+
+// Voices returns the voice messages sent so far.
+func (f *Fake) Voices() []FakeVoice {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]FakeVoice(nil), f.voices...)
+}
+
+// Documents returns the documents sent so far.
+func (f *Fake) Documents() []FakeDoc {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]FakeDoc(nil), f.docs...)
+}
+
+// Cleared returns the message IDs whose buttons were cleared.
+func (f *Fake) Cleared() []int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]int(nil), f.cleared...)
+}
+
+// Commands returns the registered command menu.
+func (f *Fake) Commands() []Command {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]Command(nil), f.commands...)
 }

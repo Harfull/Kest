@@ -81,6 +81,8 @@ type Transport interface {
 	Send(ctx context.Context, r Reply) (messageID int, err error)
 	// SendVoice posts MP3 audio as a voice message.
 	SendVoice(ctx context.Context, chatID int64, mp3 []byte, silent bool) error
+	// SendDocument posts a file, such as a data export.
+	SendDocument(ctx context.Context, chatID int64, filename string, data []byte, caption string) error
 	// Typing shows "typing…" (or "recording voice…") for a few seconds.
 	Typing(ctx context.Context, chatID int64, recording bool) error
 	// Download fetches a file, such as a voice note, up to Telegram's 20 MB limit.
