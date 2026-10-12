@@ -1,0 +1,217 @@
+# Kest's proactive messages. Voice rules: docs/persona/voice.md.
+# Calm, warm, direct. No exclamation marks, no emoji, no guilt, no streak talk.
+# One question per message at most. Under about 50 words.
+#
+# Each entry is a Go text/template. Every key a template uses must be supplied
+# by the caller (an empty string is fine); a missing key is an error, so typos
+# fail in tests instead of reaching the owner.
+# Functions: lowerFirst.
+
+# --- morning ---------------------------------------------------------------------
+# Keys: Sleep (a ready-made sentence ending in a question, or empty), Habit (one habit to keep warm, or empty)
+
+[[message]]
+kind = "morning"
+variant = "a"
+text = "Morning.{{if .Habit}} {{.Habit}} is the one to keep warm today.{{end}} {{if .Sleep}}{{.Sleep}}{{else}}How are you feeling about the day?{{end}}"
+
+[[message]]
+kind = "morning"
+variant = "b"
+text = "Morning.{{if .Habit}} On the list today: {{lowerFirst .Habit}}.{{end}} {{if .Sleep}}{{.Sleep}}{{else}}What is the first thing you want to get done?{{end}}"
+
+[[message]]
+kind = "morning"
+variant = "c"
+text = "Good to see the day start.{{if .Habit}} {{.Habit}} is waiting for you later.{{end}} {{if .Sleep}}{{.Sleep}}{{else}}Anything you want help lining up?{{end}}"
+
+# Keys: Hours (like "about seven hours")
+[[message]]
+kind = "sleep_line"
+variant = "a"
+text = "My guess is {{.Hours}} of sleep. Close?"
+
+[[message]]
+kind = "sleep_line"
+variant = "b"
+text = "I make it {{.Hours}} last night, give or take. Sound right?"
+
+[[message]]
+kind = "sleep_ack"
+variant = "a"
+text = "Thanks, noted."
+
+[[message]]
+kind = "sleep_ack"
+variant = "b"
+text = "Got it. That helps me read your nights."
+
+# --- habit prompts -----------------------------------------------------------------
+# Keys: Habit, Anchor (or empty), Behavior, Tiny
+
+[[message]]
+kind = "habit_prompt"
+variant = "a"
+text = "{{if .Anchor}}Your cue: {{lowerFirst .Anchor}}. {{end}}Time for {{lowerFirst .Habit}}: {{lowerFirst .Behavior}}. On a hard day, {{lowerFirst .Tiny}} counts too."
+
+[[message]]
+kind = "habit_prompt"
+variant = "b"
+text = "The window for {{lowerFirst .Habit}} is open. {{.Behavior}}, or just {{lowerFirst .Tiny}} if today is heavy. Want to start?"
+
+[[message]]
+kind = "habit_prompt"
+variant = "c"
+text = "Small reminder about {{lowerFirst .Habit}}. {{.Behavior}} is the plan, and {{lowerFirst .Tiny}} is the backup."
+
+# --- after logging -------------------------------------------------------------------
+# Keys: Habit, Done7, Expected7 (Expected7 is 0 for a brand new habit)
+
+[[message]]
+kind = "habit_done"
+variant = "a"
+text = "{{if .Expected7}}Logged. That is {{.Done7}} of the last {{.Expected7}} days for {{lowerFirst .Habit}}.{{else}}Logged. That is the first one on the board.{{end}}"
+
+[[message]]
+kind = "habit_done"
+variant = "b"
+text = "Noted.{{if ge .Done7 4}} {{.Done7}} of the last {{.Expected7}} days is a solid stretch.{{else}} Showing up is the part that counts.{{end}}"
+
+[[message]]
+kind = "habit_done"
+variant = "c"
+text = "Done and logged. Nicely kept."
+
+# Keys: Habit
+[[message]]
+kind = "habit_tiny"
+variant = "a"
+text = "The small version counts. Showing up is the habit, and you did."
+
+[[message]]
+kind = "habit_tiny"
+variant = "b"
+text = "Small version logged. On a hard day that is exactly the right call."
+
+# Keys: Habit
+[[message]]
+kind = "habit_skipped"
+variant = "a"
+text = "Skipping today is fine. One day changes very little, and the next one is what matters."
+
+[[message]]
+kind = "habit_skipped"
+variant = "b"
+text = "Noted. Should I check in again at the same time tomorrow, or shift it?"
+
+# --- lapse protocol -----------------------------------------------------------------------
+# After one miss. Keys: Habit, Tiny
+
+[[message]]
+kind = "lapse_first"
+variant = "a"
+text = "Yesterday's {{lowerFirst .Habit}} did not happen, and that is okay. Today, even {{lowerFirst .Tiny}} keeps it going. Want to do that?"
+
+[[message]]
+kind = "lapse_first"
+variant = "b"
+text = "{{.Habit}} slipped yesterday. It happens. A smaller version today keeps it warm: {{lowerFirst .Tiny}}. Does that work?"
+
+# After two or more misses in a row. Keys: Habit
+[[message]]
+kind = "lapse_repeat"
+variant = "a"
+text = "{{.Habit}} has been hard to fit lately. Maybe this slot is not working. Should we make it smaller, move it, or pause it for a bit?"
+
+[[message]]
+kind = "lapse_repeat"
+variant = "b"
+text = "A few days without {{lowerFirst .Habit}} usually means the plan needs adjusting, not you. What would make it easier: smaller, a different time, or a pause?"
+
+# Keys: Habit
+[[message]]
+kind = "habit_paused"
+variant = "a"
+text = "Paused. Tell me whenever you want {{lowerFirst .Habit}} back."
+
+[[message]]
+kind = "habit_resize"
+variant = "a"
+text = "Tell me the smaller version you would rather do, or a new time, and I will update the plan."
+
+# --- evening and rest ----------------------------------------------------------------------
+
+[[message]]
+kind = "evening"
+variant = "a"
+text = "How did today go? Tap whatever you got done."
+
+[[message]]
+kind = "evening"
+variant = "b"
+text = "Evening check-in. What got done today?"
+
+[[message]]
+kind = "evening_none"
+variant = "a"
+text = "How did today go? One win is enough to name."
+
+[[message]]
+kind = "evening_none"
+variant = "b"
+text = "Evening. What was the best part of today?"
+
+[[message]]
+kind = "rough_day"
+variant = "a"
+text = "Rough days happen. Is there anything that would make tomorrow's first step easier?"
+
+[[message]]
+kind = "rough_day"
+variant = "b"
+text = "Thanks for telling me. Tomorrow can be small. What is the one thing worth keeping?"
+
+[[message]]
+kind = "winddown"
+variant = "a"
+text = "Wind-down time. If anything is still on your mind, jot it down so it can wait until tomorrow."
+
+[[message]]
+kind = "winddown"
+variant = "b"
+text = "About an hour until your usual bedtime. A good moment to pick tomorrow's first task and put the screen down."
+
+# --- weekly review ---------------------------------------------------------------------------
+# Keys: Summary (a sentence or two about the week), Suggestion (one idea, or empty)
+
+[[message]]
+kind = "weekly"
+variant = "a"
+text = "This week: {{.Summary}}{{if .Suggestion}} {{.Suggestion}}{{end}} Want to change anything for next week?"
+
+[[message]]
+kind = "weekly"
+variant = "b"
+text = "Weekly look back. {{.Summary}}{{if .Suggestion}} {{.Suggestion}}{{end}} What would you like next week to look like?"
+
+# --- backing off ---------------------------------------------------------------------------------
+
+[[message]]
+kind = "backoff"
+variant = "a"
+text = "I have sent a few messages without hearing back, which is fine. Want me to check in less this week?"
+
+[[message]]
+kind = "backoff"
+variant = "b"
+text = "No pressure on my last few messages. Would fewer check-ins suit you better right now?"
+
+[[message]]
+kind = "backoff_less"
+variant = "a"
+text = "Done. I will check in less."
+
+[[message]]
+kind = "backoff_keep"
+variant = "a"
+text = "Okay, I will keep things as they are."
