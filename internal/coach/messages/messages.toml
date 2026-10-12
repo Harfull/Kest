@@ -187,7 +187,7 @@ text = "About an hour until your usual bedtime. A good moment to pick tomorrow's
 [[message]]
 kind = "weekly"
 variant = "a"
-text = "This week: {{.Summary}}{{if .Suggestion}} {{.Suggestion}}{{end}} Want to change anything for next week?"
+text = "Here is your week. {{.Summary}}{{if .Suggestion}} {{.Suggestion}}{{end}} Want to change anything for next week?"
 
 [[message]]
 kind = "weekly"
@@ -215,3 +215,15 @@ text = "Done. I will check in less."
 kind = "backoff_keep"
 variant = "a"
 text = "Okay, I will keep things as they are."
+
+# --- small acknowledgements -------------------------------------------------------------------
+
+[[message]]
+kind = "good_day"
+variant = "a"
+text = "Good to hear. That is worth noticing."
+
+[[message]]
+kind = "good_day"
+variant = "b"
+text = "Glad it went well. Hold onto what worked."

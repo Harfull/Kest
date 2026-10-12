@@ -28,6 +28,10 @@ const (
 	Normal
 )
 
+// DefaultResponseWindow is how long the owner has to react to a message before
+// it counts as unanswered.
+const DefaultResponseWindow = 3 * time.Hour
+
 // Policy holds the limits. Zero values fall back to the defaults in New.
 type Policy struct {
 	// MaxPerDay caps proactive messages per local day.
@@ -44,7 +48,7 @@ type Policy struct {
 // New returns a Policy with defaults filled in: 3 a day, 90 minutes apart,
 // 3 hours to respond.
 func New(maxPerDay int, loc *time.Location) Policy {
-	return Policy{MaxPerDay: maxPerDay, MinGap: 90 * time.Minute, ResponseWindow: 3 * time.Hour, Loc: loc}
+	return Policy{MaxPerDay: maxPerDay, MinGap: 90 * time.Minute, ResponseWindow: DefaultResponseWindow, Loc: loc}
 }
 
 // Decision is the policy's answer.

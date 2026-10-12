@@ -35,10 +35,11 @@ var samples = map[string][]map[string]any{
 	"evening":       {{}},
 	"evening_none":  {{}},
 	"rough_day":     {{}},
+	"good_day":      {{}},
 	"winddown":      {{}},
 	"weekly": {
-		{"Summary": "walks 5 of 7 days and stretching 3 of 4. Sleep averaged about seven hours.", "Suggestion": "Evenings keep slipping, so earlier workouts might fit better."},
-		{"Summary": "Walks 5 of 7 days.", "Suggestion": ""},
+		{"Summary": "Walk after lunch: 5 of 7 days. Stretching: 3 of 4 days. Sleep averaged about seven hours.", "Suggestion": "Evenings keep slipping, so earlier workouts might fit better."},
+		{"Summary": "Walk after lunch: 5 of 7 days.", "Suggestion": ""},
 	},
 	"backoff":      {{}},
 	"backoff_less": {{}},
