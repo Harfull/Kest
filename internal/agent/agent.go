@@ -193,7 +193,7 @@ func (a *Agent) Reply(ctx context.Context, userText string) (string, error) {
 	}
 	msgs = append(msgs, llm.Message{Role: llm.RoleUser, Content: userText})
 
-	reply, wasTainted, tokens, err := a.loop(ctx, msgs)
+	reply, wasTainted, tokens, err := a.loop(ctx, msgs, userText)
 	if err != nil {
 		return "", err
 	}
@@ -212,8 +212,8 @@ func (a *Agent) Reply(ctx context.Context, userText string) (string, error) {
 
 // loop runs the model/tool cycle and returns the final text, whether the turn
 // read untrusted content, and the tokens of the final completion.
-func (a *Agent) loop(ctx context.Context, msgs []llm.Message) (reply string, wasTainted bool, tokens int, err error) {
-	defs := a.toolDefs()
+func (a *Agent) loop(ctx context.Context, msgs []llm.Message, userText string) (reply string, wasTainted bool, tokens int, err error) {
+	defs := a.toolDefs(routeTools(a.tools.Tools(), userText))
 	noParallel := false // run tools one at a time so approvals are unambiguous
 	calls := 0
 
@@ -276,9 +276,8 @@ func withTaintIf(ctx context.Context, t bool) context.Context {
 	return ctx
 }
 
-// toolDefs converts the toolbox to model tool definitions.
-func (a *Agent) toolDefs() []llm.Tool {
-	refs := a.tools.Tools()
+// toolDefs converts tools to model tool definitions.
+func (a *Agent) toolDefs(refs []plugin.ToolRef) []llm.Tool {
 	defs := make([]llm.Tool, len(refs))
 	for i, r := range refs {
 		defs[i] = llm.Tool{

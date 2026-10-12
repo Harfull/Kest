@@ -111,6 +111,12 @@ Settings for a plugin that is not enabled are a configuration error. Secrets are
 
 Tools are exposed to the model as `plugin__tool` (function names cannot contain dots) and shown to people as `plugin.tool`. The built-in memory tools (`memory__remember`, `memory__recall`, `memory__forget_fact`) follow the same rules and cannot be shadowed by a plugin.
 
+## Tool routing
+
+Every tool definition costs tokens on every model call, and models choose worse from long lists. Up to 24 tools, all are shown. Beyond that, `internal/agent/router.go` shows the `memory` and `coach` tools plus the 14 best matches for the owner's message. Matching is plain word overlap (lower-cased, crudely stemmed) between the message and each tool's plugin id, name and description; name matches count triple. There is no model call, so it adds no cost or latency, and the same message always selects the same tools.
+
+The trade-off is that a tool the message never hints at is hidden for that turn. Write tool descriptions with the words an owner would use ("email", "note", "calendar"), not only internal terms. A hidden tool that the model calls anyway still runs, under the usual policy.
+
 ## Policy at call time
 
 Implemented in `internal/agent/policy.go`.

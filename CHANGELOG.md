@@ -10,6 +10,7 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- A tool router: once more than 24 tools are loaded, each turn shows the model the memory and coach tools plus the 14 best matches for the message, by word overlap with plugin and tool names and descriptions. It makes no model call, and below 24 tools nothing changes.
 - `/audit` shows what Kest has done on your behalf. Entries are written by a new `audit` package that scrubs secrets, emails and control characters and keeps summaries short. Refused lockdown actions are recorded too.
 - A `secrets.json` file in the data directory, as the last place Kest looks for `KEST_*` values. On Linux and macOS it must be mode 0600 or Kest refuses to start.
 - A `.env` file in the working directory is read for local runs. Real environment variables still win.

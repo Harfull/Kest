@@ -47,7 +47,7 @@ The agent can act, safely.
 - ✅ Prompt-injection test suite (policy, wrapper breakout, exfiltration attempts, memory poisoning, forged approvals)
 - ✅ Model evaluation harness (opt-in, real API): tone, tool use, injection resistance
 - ⬜ Run the evaluation against candidate models and record the results
-- ⬜ Cheap tool router for large tool sets (not needed with three plugins)
+- ✅ Cheap tool router for large tool sets: no model call; inactive up to 24 tools
 
 Exit criteria: "remind me to stretch at 3 and tomorrow at 9" works; a prompt-injection test suite passes. Both hold in automated tests against a scripted model; a live check with a real model and a real bot token is still to be done.
 
