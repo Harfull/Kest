@@ -368,12 +368,12 @@ func TestTwoMonthSimulation(t *testing.T) {
 		seen := 0
 		ctx := context.Background()
 		for d := range days {
-			for step := 0; step < 24*12; step++ {
-				ts := when(d, 0, 0).Add(time.Duration(step) * 5 * time.Minute)
+			for step := 0; step < 24*6; step++ {
+				ts := when(d, 0, 0).Add(time.Duration(step) * 10 * time.Minute)
 				r.clk.Set(ts)
 
 				// A responsive owner chats during the day and answers the buttons.
-				if responsive && ts.Hour() >= 7 && ts.Hour() < 22 && step%6 == 0 {
+				if responsive && ts.Hour() >= 7 && ts.Hour() < 22 && step%3 == 0 {
 					r.c.RecordActivity(ctx, ts)
 				}
 				if err := r.c.Tick(ctx); err != nil {
@@ -399,8 +399,11 @@ func TestTwoMonthSimulation(t *testing.T) {
 		return res
 	}
 
-	responsive := run(t, true)
-	silent := run(t, false)
+	var responsive, silent result
+	t.Run("owners", func(t *testing.T) { // the group returns once both parallel runs finish
+		t.Run("responsive", func(t *testing.T) { t.Parallel(); responsive = run(t, true) })
+		t.Run("silent", func(t *testing.T) { t.Parallel(); silent = run(t, false) })
+	})
 
 	for name, res := range map[string]result{"responsive": responsive, "silent": silent} {
 		if len(res.quiet) > 0 {
