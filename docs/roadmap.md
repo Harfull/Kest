@@ -65,13 +65,17 @@ The product's heart.
 
 Exit criteria: a 60 day simulated owner never receives a message in quiet hours or above budget (tested in `TestTwoMonthSimulation`); a user can set up a habit in under two minutes (the agent asks three questions and calls `coach__create_habit`; timing it needs a live run).
 
-## Phase 4: Integrations ⬜
+## Phase 4: Integrations 🚧
 
-- ⬜ `gmail` (read, search, draft, send with confirmation)
-- ⬜ `mailbox` (SMTP and IMAP)
-- ⬜ `notion` (search, read, create, update; optional daily log mirror)
-- ⬜ Workout, nutrition and focus modules
-- ⬜ Email-driven nudges (opt-in)
+- ✅ `gmail` (read, search, draft, send with confirmation) over the Gmail API with a refresh token ([setup](guides/gmail-setup.md))
+- ✅ `mailbox` (IMAP and SMTP with an app password, standard library only, [ADR 0009](decisions/0009-mail-on-the-standard-library.md); [setup](guides/mailbox-setup.md))
+- ✅ `notion` (search, read, create, update, trash; API version 2026-03-11; [setup](guides/notion-setup.md))
+- ⬜ `notion` optional daily log mirror: not built; ask Kest to append to a page for now
+- ✅ Workout, nutrition and focus, as plugins with prompt context and weekly-review lines ([ADR 0010](decisions/0010-coaching-domains-as-plugins.md))
+- ✅ Email-driven nudges (opt-in), through the coach's notification budget
+- ✅ Browser improvements: scroll-aware reading, element refs, screenshots to Telegram and to the model, task approvals, Telegram replies and photos in both directions
+
+Exit criteria: Kest can answer "any email from Dana?", draft and send a reply after approval, add a note to Notion, log a workout and a meal by chatting, run a focus timer and mention them in the weekly review. All of this is covered by automated tests against fake IMAP, SMTP, Gmail and Notion servers; none of it has been run against a real mailbox, Google account or Notion workspace yet, which is still to be done by the owner.
 
 ## Phase 5: Reach and adaptation ⬜
 

@@ -91,10 +91,6 @@ Kest/
 │   │   ├── sleep/                    events, inference, learned offsets, quiet hours
 │   │   ├── budget/                   notification budget, cooldowns, back-off
 │   │   ├── messages/                 templates as data (messages.toml)
-│   │   ├── module.go                 Module interface                       (P4)
-│   │   ├── workout/                  plans, logging, recovery               (P4)
-│   │   ├── nutrition/                meal logging, gentle targets           (P4)
-│   │   ├── focus/                    tasks, procrastination support         (P4)
 │   │   ├── adapt/                    timing adaptation from responsiveness  (P5)
 │   │   └── experiments/              message variants, consent-based tests  (P5)
 │   │
@@ -112,9 +108,14 @@ Kest/
 │   ├── reminders/                    one-off and recurring reminders
 │   ├── tasks/                        simple task list
 │   ├── webfetch/                     fetch URLs as untrusted text
-│   ├── gmail/                        Gmail API                              (P4)
-│   ├── mailbox/                      generic SMTP and IMAP                  (P4)
-│   ├── notion/                       Notion                                 (P4)
+│   ├── gmail/                        Gmail API
+│   ├── mailbox/                      generic SMTP and IMAP
+│   ├── notion/                       Notion
+│   ├── workout/                      workout log and weekly target
+│   ├── nutrition/                    meal and water log, no calories
+│   ├── focus/                        daily priorities and focus timers
+│   ├── browser/                      Chromium through Playwright (optional)
+│   ├── internal/                     code the plugins share: mailkit, logbook
 │   ├── calendar/                     calendar read and write                (P5)
 │   └── mcp/                          MCP client, tool bridging              (P5)
 │       Each plugin directory: manifest.toml, plugin.go, README.md, tests.

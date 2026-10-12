@@ -18,6 +18,8 @@ Which Go libraries should power a generic email plugin for a custom mailbox?
 
 ## Decision
 
+> Update 2026-10-12: Phase 4 built the mailbox plugin on the standard library instead, for the reasons in [ADR 0009](../../decisions/0009-mail-on-the-standard-library.md). The text below is the original recommendation.
+
 - Send with `go-mail`; read with `go-imap/v2` (subject to the stability check). Wrap both in `plugins/mailbox` behind the shared `mail` interface.
 - Tools: `mail.search`, `mail.read`, `mail.send` (destructive risk, confirmation required), `mail.mark_read`. Keep tools identical to the Gmail plugin so the model sees one email vocabulary.
 - Store credentials only in env or the 0600 secrets file; never echo them.

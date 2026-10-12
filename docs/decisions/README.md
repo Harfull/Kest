@@ -12,6 +12,8 @@ ADRs capture decisions that are hard to reverse. They are append-only: to change
 | [0006](0006-consistency-over-streaks.md) | Consistency score instead of streaks | Accepted |
 | [0007](0007-custom-scheduler.md) | Custom persistent scheduler | Accepted |
 | [0008](0008-optional-browser-runtime.md) | Optional Chromium and Playwright runtime | Accepted |
+| [0009](0009-mail-on-the-standard-library.md) | Email over the standard library | Accepted |
+| [0010](0010-coaching-domains-as-plugins.md) | Coaching domains as plugins | Accepted |
 
 ## Template
 

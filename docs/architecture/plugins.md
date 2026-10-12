@@ -71,7 +71,9 @@ type Host interface {
 }
 ```
 
-Not built yet: `EventSource` (plugins that push events such as new mail). It arrives with the email plugins in Phase 4.
+Plugins that keep the owner's own data can also implement `ContextProvider` (`PromptContext(ctx) string`, added to the system prompt each turn) and `Digester` (`WeeklyDigest(ctx) string`, a line in the weekly review). A non-urgent `Host.Notify` goes through the coach's notification budget (quiet hours, daily cap, minimum gap) and returns `plugin.ErrNotSent` when held back, so a plugin that still cares can try again later. Urgent notifications (a reminder or timer the owner asked for) skip the budget. The email plugins use this for opt-in new-mail nudges, polled by a scheduled job; there is no push `EventSource`.
+
+Shared plugin code lives in `plugins/internal/` (`mailkit`, `logbook`), which only plugins can import.
 
 ## Manifest
 

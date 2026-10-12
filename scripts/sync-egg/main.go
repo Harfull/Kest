@@ -284,7 +284,7 @@ func build(script string) egg {
 			},
 			{
 				Name:         "Plugins",
-				Description:  "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, browser (requires the browser runtime image).",
+				Description:  "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, focus, workout, nutrition, mailbox, gmail, notion, browser (requires the browser runtime image). mailbox, gmail and notion also need settings in config.toml and their secret below.",
 				EnvVariable:  "KEST_PLUGINS",
 				DefaultValue: "reminders,tasks,webfetch",
 				UserViewable: true,
@@ -292,6 +292,11 @@ func build(script string) egg {
 				Rules:        "required|string|max:256",
 				FieldType:    "text",
 			},
+			pluginSecret("Mailbox Password", "KEST_SECRET_MAILBOX_PASSWORD", "App password for the mailbox plugin (IMAP and SMTP). Leave empty if you do not use it."),
+			pluginSecret("Gmail Client ID", "KEST_SECRET_GMAIL_CLIENT_ID", "OAuth client id for the gmail plugin. See docs/guides/gmail-setup.md."),
+			pluginSecret("Gmail Client Secret", "KEST_SECRET_GMAIL_CLIENT_SECRET", "OAuth client secret for the gmail plugin."),
+			pluginSecret("Gmail Refresh Token", "KEST_SECRET_GMAIL_REFRESH_TOKEN", "OAuth refresh token for the gmail plugin."),
+			pluginSecret("Notion Token", "KEST_SECRET_NOTION_TOKEN", "Internal integration token for the notion plugin. See docs/guides/notion-setup.md."),
 			{
 				Name:         "Log Level",
 				Description:  "debug, info, warn or error.",
@@ -313,5 +318,14 @@ func build(script string) egg {
 				FieldType:    "text",
 			},
 		},
+	}
+}
+
+// pluginSecret defines an optional variable that carries one plugin secret. It
+// is empty by default, and Kest ignores blank values.
+func pluginSecret(name, env, description string) variable {
+	return variable{
+		Name: name, Description: description, EnvVariable: env, DefaultValue: "",
+		UserViewable: true, UserEditable: true, Rules: "nullable|string|max:512", FieldType: "text",
 	}
 }

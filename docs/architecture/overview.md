@@ -74,7 +74,7 @@ plugins/*                    import internal/plugin only
 
 ### 3. Confirmation of a risky action
 
-1. The model requests `gmail.send_email`. Policy marks it `destructive`.
+1. The model requests `gmail.send_mail`. Policy marks it `destructive`.
 2. `agent` stores a `pending_action` with the exact structured arguments and sends a message with Confirm and Cancel inline buttons rendered from those arguments.
 3. The model turn pauses. When the owner taps Confirm, the stored action executes and the result returns to the model. Cancel or a 10 minute timeout aborts it.
 

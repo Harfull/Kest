@@ -30,6 +30,12 @@ The scope-tier and token-expiry claims come from secondary sources and must be r
 - Reading is always safe-by-default; **sending requires confirmation** in Telegram every time unless the owner enables an allowlist.
 - Email bodies are untrusted input and are wrapped as data in prompts.
 
+## Verified 2026-10-12
+
+- The 7-day refresh token limit for apps in Testing status with an external user type is current, and applies as soon as any non-identity scope is requested ([Google OAuth documentation](https://developers.google.com/identity/protocols/oauth2#expiration)). Other expiry causes: revoked access, six months of non-use, a password change while the token holds Gmail scopes, and too many live tokens.
+- The device flow does **not** support Gmail scopes (it allows only OpenID, Drive file and app data, and YouTube scopes), so a headless consent flow is not an option. The plugin uses a refresh token the owner creates once; see [the setup guide](../../guides/gmail-setup.md).
+- Built as `plugins/gmail` over the REST API with `net/http` and no Google client library.
+
 ## Open questions
 
 - Is the 7-day testing expiry still current? Verify, and document the consent-screen setup step by step in `docs/guides/gmail-setup.md`.

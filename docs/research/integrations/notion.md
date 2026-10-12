@@ -23,6 +23,12 @@ How should Kest read and write Notion, given API versions and rate limits?
 - Tools (v1): `notion.search`, `notion.get_page`, `notion.query_data_source`, `notion.create_page`, `notion.append_to_page`, `notion.update_page_properties`. Writes are `write` risk; archiving or deletion is `destructive`.
 - The coach engine can optionally mirror daily logs (workout, meals, sleep) into a user-chosen Notion data source. Notion is a view, SQLite stays the source of truth.
 
+## Verified 2026-10-12
+
+- `2026-03-11` is the latest version and the one a new client should pin. Its breaking changes relative to `2025-09-03` are: `position` replaces `after` in append block children, `archived` becomes `in_trash` in requests and responses, and the `transcription` block is now `meeting_notes`.
+- Data sources: query is `POST /v1/data_sources/{id}/query` with `filter`, `sorts`, `start_cursor` and `page_size`; search takes `filter: {property: "object", value: "page" | "data_source"}`.
+- Decision: pin `2026-03-11` (the `notion_version` setting), recorded in [the setup guide](../../guides/notion-setup.md).
+
 ## Open questions
 
 - Whether to adopt the `2026-03-11` version immediately or pin `2025-09-03` for stability. Decide when implementing; record in an ADR.

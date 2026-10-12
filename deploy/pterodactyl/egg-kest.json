@@ -150,12 +150,62 @@
         },
         {
             "name": "Plugins",
-            "description": "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, browser (requires the browser runtime image).",
+            "description": "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, focus, workout, nutrition, mailbox, gmail, notion, browser (requires the browser runtime image). mailbox, gmail and notion also need settings in config.toml and their secret below.",
             "env_variable": "KEST_PLUGINS",
             "default_value": "reminders,tasks,webfetch",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|string|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Mailbox Password",
+            "description": "App password for the mailbox plugin (IMAP and SMTP). Leave empty if you do not use it.",
+            "env_variable": "KEST_SECRET_MAILBOX_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Gmail Client ID",
+            "description": "OAuth client id for the gmail plugin. See docs/guides/gmail-setup.md.",
+            "env_variable": "KEST_SECRET_GMAIL_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Gmail Client Secret",
+            "description": "OAuth client secret for the gmail plugin.",
+            "env_variable": "KEST_SECRET_GMAIL_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Gmail Refresh Token",
+            "description": "OAuth refresh token for the gmail plugin.",
+            "env_variable": "KEST_SECRET_GMAIL_REFRESH_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Notion Token",
+            "description": "Internal integration token for the notion plugin. See docs/guides/notion-setup.md.",
+            "env_variable": "KEST_SECRET_NOTION_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:512",
             "field_type": "text"
         },
         {

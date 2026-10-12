@@ -84,6 +84,16 @@ Most behavior (tone, volume, check-in times) is changed by chatting with Kest or
 | `KEST_PLUGINS` | `enabled_plugins` | `reminders,tasks,webfetch` | Built-in plugins to load, by id |
 | `KEST_SECRET_<NAME>` | none | none | A secret a plugin declared in its manifest, for example `KEST_SECRET_NOTION_TOKEN` |
 
+| Plugin | Secrets | Needs settings | Guide |
+| --- | --- | --- | --- |
+| `mailbox` | `MAILBOX_PASSWORD` | `imap_host`, `smtp_host`, `username` | [mailbox-setup.md](mailbox-setup.md) |
+| `gmail` | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | none | [gmail-setup.md](gmail-setup.md) |
+| `notion` | `NOTION_TOKEN` | none | [notion-setup.md](notion-setup.md) |
+| `workout`, `nutrition`, `focus` | none | none | their READMEs under `plugins/` |
+| `browser` | none | the runtime image | [browser deployment](../deployment/browser.md) |
+
+The Pterodactyl egg has a startup variable for each secret; leave the ones you do not use empty.
+
 Per-plugin settings live under `[plugins.<id>]` and are checked against the plugin's manifest; unknown or wrongly typed settings disable that plugin and are reported by `/status`:
 
 ```toml

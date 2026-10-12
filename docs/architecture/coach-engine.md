@@ -35,7 +35,7 @@ type Intent struct {
 }
 ```
 
-Built-in modules: `habit`, `sleep`, `workout`, `nutrition`, `focus`. Each lives in `internal/coach/<id>/`.
+Built-in modules: `habit` and `sleep` live in `internal/coach/`. Workout, nutrition and focus were built as plugins instead, with no `Module` interface: see [ADR 0010](../decisions/0010-coaching-domains-as-plugins.md). They reach the engine through three generic hooks: `ContextProvider` (owner data in the system prompt), `Digester` (a line in the weekly review) and the notification budget for non-urgent plugin messages (`Coach.Nudge`).
 
 ## Habits and plans
 
@@ -134,7 +134,7 @@ If several misses accumulate, Kest asks whether the habit is still right instead
 
 The design above is the target. Phase 3 implements the core of it and simplifies in four places, on purpose:
 
-- **One engine, no module interface yet.** `internal/coach` is a single `Coach` with sub-packages `habit` (cadence, windows, consistency), `sleep` (events, inference, quiet hours), `budget` (caps, cooldowns, back-off) and `messages` (templates). The `Module` interface arrives with the first domain that needs it (workout, Phase 4).
+- **One engine, no module interface yet.** `internal/coach` is a single `Coach` with sub-packages `habit` (cadence, windows, consistency), `sleep` (events, inference, quiet hours), `budget` (caps, cooldowns, back-off) and `messages` (templates). The `Module` interface did not arrive in Phase 4 after all: the domains that needed the engine only needed hooks (ADR 0010).
 - **One tick instead of one job per slot.** A scheduler job `coach.tick` runs every five minutes (`MisfireSkip`). Each tick works out what is due from the sleep model, the habits and today's history, and sends at most one message. This keeps the schedule correct when the sleep model changes, with no jobs to reschedule.
 - **Templates only.** Every proactive message comes from `messages.toml` and passes `voice.Check`. Model-composed messages are a later step.
 - **Sunday review replaces the evening check-in**, so there is one message that night, not two.

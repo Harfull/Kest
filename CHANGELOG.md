@@ -15,6 +15,14 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ### Added
 
+- Phase 4 integrations, all opt-in through `KEST_PLUGINS`:
+  - `mailbox`: email over IMAP and SMTP with an app password, always encrypted, implemented on the standard library ([ADR 0009](docs/decisions/0009-mail-on-the-standard-library.md)).
+  - `gmail`: email through the Gmail API with an OAuth refresh token.
+  - Both give the same five tools (search, read, draft, send, mark read). Mail is untrusted data, sending shows the exact message for approval every time and is limited to 10 an hour, and optional nudges announce mail that matches your rules.
+  - `notion`: search, read, create, update and trash pages, pinned to Notion API version 2026-03-11, with property names checked against the database.
+  - `workout`, `nutrition` and `focus`: logs and a daily priorities list with timers, with no calories or grading ([ADR 0010](docs/decisions/0010-coaching-domains-as-plugins.md)). The model sees the current state each turn and the weekly review gains a line from each.
+  - Setup guides for [mailbox](docs/guides/mailbox-setup.md), [Gmail](docs/guides/gmail-setup.md) and [Notion](docs/guides/notion-setup.md), and a Pterodactyl startup variable for each plugin secret.
+- A plugin's non-urgent notification now goes through the coach's notification budget (quiet hours, daily cap, minimum gap, back-off) and is dropped, with `plugin.ErrNotSent`, when held back. Plugins can add owner data to the prompt (`ContextProvider`) and a line to the weekly review (`Digester`).
 - Telegram replies work both ways. Kest sees the message you replied to, including a highlighted part and a screenshot it sent earlier, and threads its answer under your message when you replied, when a message was waiting behind it, or when the answer took more than 20 seconds. Photos you send are shown to the model.
 - The typing indicator stays on for the whole turn instead of fading after five seconds.
 - Plugins can supply prompt guidance (`Prompter`), declare grantable tools (`Grantable`, `GrantCovers`) and a reason for the approval prompt (`AskReason`).
