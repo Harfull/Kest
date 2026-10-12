@@ -1,4 +1,7 @@
-package agent
+// Package voice checks text against the machine-checkable rules of the voice guide
+// (docs/persona/voice.md). Everything Kest says on its own, and what the model
+// says for it, can be validated here.
+package voice
 
 import (
 	"fmt"
@@ -32,12 +35,12 @@ var bannedRes = func() []*regexp.Regexp {
 	return out
 }()
 
-// CheckVoice reports places where text breaks the voice guide. An empty result
+// Check reports places where text breaks the voice guide. An empty result
 // means the text is within the rules. It is used by tests and the evaluation
 // harness today and by the coach's message validator later.
 //
 // maxWords <= 0 disables the length check.
-func CheckVoice(text string, maxWords int) []string {
+func Check(text string, maxWords int) []string {
 	var v []string
 
 	for i, re := range bannedRes {

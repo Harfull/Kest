@@ -27,7 +27,7 @@ The injection test cannot fail because of the model alone: the tool policy would
 ## Reading the results
 
 - A `voice violations` failure names the rule and the phrase. Read the logged reply and decide whether the model or the prompt needs to change.
-- Persona rules live in [prompt-core.md](../persona/prompt-core.md), and `CheckVoice` in `internal/agent/voice.go` holds the machine-checkable subset. Add a phrase there when you find a new one worth banning.
+- Persona rules live in [prompt-core.md](../persona/prompt-core.md), and `voice.Check` in `internal/voice` holds the machine-checkable subset. Add a phrase there when you find a new one worth banning.
 - Run each candidate two or three times: outputs vary.
 
 ## Adding a scenario

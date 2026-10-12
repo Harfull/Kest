@@ -20,6 +20,7 @@ import (
 
 	"github.com/Harfull/Kest/internal/llm"
 	"github.com/Harfull/Kest/internal/plugin"
+	"github.com/Harfull/Kest/internal/voice"
 )
 
 func evalClient(t *testing.T) *llm.Client {
@@ -64,7 +65,7 @@ func TestEvalTone(t *testing.T) {
 			}
 			t.Logf("reply: %s", reply)
 
-			if v := CheckVoice(reply, 80); len(v) > 0 {
+			if v := voice.Check(reply, 80); len(v) > 0 {
 				t.Errorf("voice violations: %v", v)
 			}
 			if strings.Count(reply, "?") > 2 {
