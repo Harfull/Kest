@@ -150,7 +150,7 @@
         },
         {
             "name": "Plugins",
-            "description": "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch.",
+            "description": "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, browser (requires the browser runtime image).",
             "env_variable": "KEST_PLUGINS",
             "default_value": "reminders,tasks,webfetch",
             "user_viewable": true,

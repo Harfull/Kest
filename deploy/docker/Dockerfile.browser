@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.27 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ARG VERSION=dev
+ARG COMMIT=none
+RUN CGO_ENABLED=0 go build -trimpath \
+    -ldflags "-s -w -X github.com/Harfull/Kest/internal/version.Version=${VERSION} -X github.com/Harfull/Kest/internal/version.Commit=${COMMIT}" \
+    -o /out/kest ./cmd/kest
+
+# Version must match deploy/browser/package-lock.json.
+FROM mcr.microsoft.com/playwright:v1.64.0-noble AS runtime
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupmod --gid 10001 pwuser && usermod --uid 10001 --gid 10001 pwuser
+WORKDIR /opt/kest-browser
+COPY deploy/browser/package.json deploy/browser/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --chmod=755 deploy/browser/entrypoint.sh /entrypoint.sh
+COPY --from=build /out/kest /usr/local/bin/kest
+RUN mkdir -p /home/container/data && chown -R pwuser:pwuser /home/container
+ENV HOME=/home/container KEST_DATA_DIR=/home/container/data
+WORKDIR /home/container
+USER pwuser:pwuser
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
+
+# Optional desktop; noVNC is protected by VNC authentication and an SSH tunnel.
+FROM runtime AS desktop
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb x11vnc novnc websockify \
+    && rm -rf /var/lib/apt/lists/*
+COPY --chmod=755 deploy/browser/desktop.sh /desktop.sh
+USER pwuser:pwuser
+
+# The default build remains headless.
+FROM runtime AS headless

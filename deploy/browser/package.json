@@ -1,0 +1,12 @@
+{
+  "name": "kest-browser-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Optional Playwright runtime for Kest's browser plugin",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test ../../plugins/browser/worker_test.cjs",
+    "install-browser": "playwright install chromium"
+  },
+  "dependencies": { "playwright": "1.64.0" }
+}

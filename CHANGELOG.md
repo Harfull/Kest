@@ -4,6 +4,11 @@ All notable changes to Kest are recorded here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Added
+
+- An optional Chromium browser plugin using Playwright, with persistent cookies and logins, page reading, navigation, clicks, fields, keys, scrolling, inbox uploads, local screenshots and tab management. Outbound actions require Telegram approval and browser content is untrusted.
+- A browser-specific Pterodactyl egg, locked browser runtime image, standalone Docker/Compose and binary setup, and optional Xvfb/noVNC viewing through a private tunnel. Browser traffic uses an authenticated local proxy that blocks private destinations; Chromium's sandbox stays enabled by default.
+
 ## [0.1.0] - 2026-10-12
 
 First stable release. It adds the coach, the audit log, a secrets file and a tool router on top of the two betas, and picks defaults that exist on OpenRouter today. The Pterodactyl egg was tried on a real panel with beta 1.

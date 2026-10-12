@@ -11,6 +11,7 @@ ADRs capture decisions that are hard to reverse. They are append-only: to change
 | [0005](0005-openrouter-thin-client.md) | Thin in-house OpenRouter client with three model slots | Accepted |
 | [0006](0006-consistency-over-streaks.md) | Consistency score instead of streaks | Accepted |
 | [0007](0007-custom-scheduler.md) | Custom persistent scheduler | Accepted |
+| [0008](0008-optional-browser-runtime.md) | Optional Chromium and Playwright runtime | Accepted |
 
 ## Template
 

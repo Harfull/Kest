@@ -31,6 +31,7 @@ func TestEnvExampleListsEveryVariable(t *testing.T) {
 		envTelegramToken, envOwnerID, envOpenRouterKey, envOpenRouterURL,
 		envModelGeneral, envModelFallbacks, envModelTranscr, envModelTTS, envTTSVoice,
 		envDailyBudget, envZDROnly, envMaxProactive, envQuietStart, envQuietEnd, envPlugins,
+		envBrowserModule, envBrowserHeadless, envBrowserSandbox,
 	} {
 		if !regexp.MustCompile(`(?m)^#?\s*` + regexp.QuoteMeta(name) + `=`).MatchString(example) {
 			t.Errorf(".env.example is missing %s", name)
@@ -46,6 +47,7 @@ func TestEggVariablesMatchConfig(t *testing.T) {
 	}
 
 	known := map[string]bool{
+		envBrowserModule: true, envBrowserHeadless: true, envBrowserSandbox: true,
 		envDataDir: true, envTimezone: true, envLogLevel: true,
 		envTelegramToken: true, envOwnerID: true, envOpenRouterKey: true,
 		envModelGeneral: true, envModelFallbacks: true, envModelTranscr: true,

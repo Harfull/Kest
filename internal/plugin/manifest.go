@@ -24,6 +24,8 @@ type Manifest struct {
 
 // Capabilities declares what a plugin is allowed to reach.
 type Capabilities struct {
+	// Files grants a directory under the data root for profiles and artifacts.
+	Files bool `toml:"files"`
 	// Network lists hosts the plugin may contact. "*" means any public host;
 	// private and loopback addresses are always refused.
 	Network []string `toml:"network"`

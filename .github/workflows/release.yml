@@ -51,6 +51,7 @@ jobs:
             dist/kest-linux-arm64
             dist/checksums.txt
             deploy/pterodactyl/egg-kest.json
+            deploy/pterodactyl/egg-kest-browser.json
 
   image:
     name: Publish container image

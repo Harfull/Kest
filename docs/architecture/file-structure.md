@@ -155,3 +155,7 @@ Kest/
 - `plugins/` imports only `internal/plugin` (and later `pkg/kestsdk`). A lint rule (`depguard`) enforces this once the plugin framework lands.
 - Generated files carry a `// Code generated ... DO NOT EDIT.` header and are verified in CI by running the generator and checking for a clean diff.
 - Every directory under `docs/` has a `README.md` index.
+
+## Optional browser files
+
+`plugins/browser/` holds the native plugin, embedded Node worker, manifest and tests. `deploy/browser/` holds the locked runtime package, entrypoint, optional desktop supervisor and seccomp profile. `deploy/docker/Dockerfile.browser` and the browser/desktop Compose files build those runtimes. `scripts/sync-egg` also generates `deploy/pterodactyl/egg-kest-browser.json`. All browser user data belongs under `<data dir>/plugins/browser/`; see [browser deployment](../deployment/browser.md).

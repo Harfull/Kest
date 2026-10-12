@@ -7,6 +7,7 @@ package all
 import (
 	"github.com/Harfull/Kest/internal/plugin"
 
+	"github.com/Harfull/Kest/plugins/browser"
 	"github.com/Harfull/Kest/plugins/reminders"
 	"github.com/Harfull/Kest/plugins/tasks"
 	"github.com/Harfull/Kest/plugins/webfetch"
@@ -15,6 +16,7 @@ import (
 // All returns the built-in plugin factories keyed by plugin id.
 func All() map[string]plugin.Factory {
 	return map[string]plugin.Factory{
+		"browser":   browser.New,
 		"reminders": reminders.New,
 		"tasks":     tasks.New,
 		"webfetch":  webfetch.New,

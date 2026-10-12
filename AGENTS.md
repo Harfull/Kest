@@ -241,6 +241,15 @@ Rules:
 - Graceful shutdown on `SIGTERM` within 10 seconds. Pterodactyl sends a stop command; the binary must honor it.
 - Container image is non-root, minimal (distroless or scratch + CA certs + tzdata).
 
+### Optional browser runtime
+
+- The default runtime remains a static binary and minimal image. The opt-in `browser` plugin is an explicit exception: its custom image includes Node, Playwright and Chromium, with versions locked together in `deploy/browser/` and `deploy/docker/Dockerfile.browser`.
+- Browser workers use private process pipes. Keep Chromium's sandbox enabled by default; do not silently add `--no-sandbox` when a host blocks user namespaces.
+- Native plugins declaring `capabilities.files` use the registry's scoped `Host.DataDir()`, under `<data dir>/plugins/<id>`. Browser sessions and artifacts never belong outside the application data directory.
+- All browser web traffic must pass the authenticated proxy and manifest-scoped connection guard. Navigation, clicks, typing, key presses and uploads set `Outbound` and require the existing Telegram approval flow.
+- Browser content is untrusted. Do not expose arbitrary JavaScript evaluation or host filesystem paths to the model. Uploads are limited to owner-provided inbox files.
+- Keep optional desktop access behind authentication and a private tunnel. A browser egg cannot grant host sandbox permissions; document and verify host prerequisites.
+
 ## 11. Working agreement for AI agents
 
 - Read this file and the relevant docs before changing code.

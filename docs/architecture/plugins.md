@@ -6,7 +6,7 @@ Design rationale: [../research/integrations/](../research/integrations/README.md
 
 | Tier | Where it lives | Who writes it | Status |
 | --- | --- | --- | --- |
-| 1. Native | `plugins/<id>/`, compiled in | Kest maintainers | Built: `reminders`, `tasks`, `webfetch` |
+| 1. Native | `plugins/<id>/`, compiled in | Kest maintainers | Built: `reminders`, `tasks`, `webfetch`, optional `browser` |
 | 2. MCP | `[[mcp.servers]]` in config | Third parties | Planned, Phase 5 |
 | 3. Declarative | `plugins.d/*.toml` in the data dir | The owner | Planned, Phase 5 |
 
@@ -155,6 +155,8 @@ A plugin with `capabilities.jobs = true` schedules work through `Host.Jobs()` an
 - has no proxy and a 20 second timeout.
 
 ## Writing a plugin
+
+`Host.DialContext` applies the manifest host allowlist and public socket-address checks to TCP connections (including the browser's HTTPS proxy tunnels). Plugins declaring `capabilities.files = true` receive `Host.DataDir()`, a private directory under `<data dir>/plugins/<id>`. Native plugins remain trusted in-process code; this API is a scoped contract, not hostile-code isolation.
 
 1. Create `plugins/<id>/` (the id is lower-case letters and digits; it becomes the Go package name) with `manifest.toml`, `plugin.go` defining `func New() plugin.Plugin`, a `README.md` and tests.
 2. Declare minimal capabilities and honest risk levels. Mark external text `Untrusted`.

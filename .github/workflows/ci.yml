@@ -81,3 +81,42 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: make build
+
+  browser:
+    name: Optional browser runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: deploy/browser/package-lock.json
+      - name: Check browser worker
+        run: |
+          npm --prefix deploy/browser ci --ignore-scripts
+          npm --prefix deploy/browser test
+      - name: Build real-browser test executable
+        run: CGO_ENABLED=0 go test -c -tags integration -o bin/browser.test ./plugins/browser
+      - name: Build headless and desktop images
+        run: |
+          docker build --target headless -f deploy/docker/Dockerfile.browser -t kest-browser:test .
+          docker build --target desktop -f deploy/docker/Dockerfile.browser -t kest-desktop:test .
+      - name: Verify sandboxed browser and persistent profile in container
+        run: |
+          docker run --rm --security-opt no-new-privileges \
+            --security-opt seccomp=deploy/browser/seccomp_profile.json --cap-drop=ALL \
+            --shm-size=1g -v "$PWD/bin/browser.test:/tests/browser.test:ro" \
+            -e KEST_BROWSER_TEST_MODULE_PATH=/opt/kest-browser/node_modules/playwright \
+            --entrypoint /tests/browser.test kest-browser:test -test.v -test.run TestPersistentChromiumSession
+      - name: Verify headed browser under the desktop supervisor
+        run: |
+          docker run --rm --security-opt no-new-privileges \
+            --security-opt seccomp=deploy/browser/seccomp_profile.json --cap-drop=ALL \
+            --shm-size=1g -v "$PWD/bin/browser.test:/tests/browser.test:ro" \
+            -e KEST_BROWSER_TEST_MODULE_PATH=/opt/kest-browser/node_modules/playwright \
+            -e KEST_BROWSER_TEST_HEADLESS=false -e KEST_SECRET_BROWSER_VNC_PASSWORD=ci-test-password \
+            --entrypoint /desktop.sh kest-desktop:test /tests/browser.test -test.v -test.run TestPersistentChromiumSession

@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
@@ -29,6 +30,10 @@ type Host interface {
 	// HTTP is a client that enforces the manifest's network allowlist and
 	// refuses private and loopback addresses.
 	HTTP() *http.Client
+	// DialContext opens a TCP connection subject to the same network policy as HTTP.
+	DialContext(ctx context.Context, network, address string) (net.Conn, error)
+	// DataDir returns this plugin's private directory, if it declares files access.
+	DataDir() (string, error)
 	// Notify sends the owner a message outside of a conversation.
 	Notify(ctx context.Context, n Notification) error
 }

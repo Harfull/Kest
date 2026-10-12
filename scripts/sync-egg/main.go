@@ -85,29 +85,53 @@ func run(check bool) error {
 		return fmt.Errorf("read install script: %w", err)
 	}
 
+	if err := writeEgg(check, eggPath, build(string(script))); err != nil {
+		return err
+	}
+	return writeEgg(check, "deploy/pterodactyl/egg-kest-browser.json", buildBrowser(string(script)))
+}
+
+func writeEgg(check bool, path string, e egg) error {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "    ")
-	if err := enc.Encode(build(string(script))); err != nil {
+	if err := enc.Encode(e); err != nil {
 		return fmt.Errorf("encode egg: %w", err)
 	}
 
 	if check {
-		current, err := os.ReadFile(eggPath)
+		current, err := os.ReadFile(path) //nolint:gosec // path is one of the two fixed generated egg paths
 		if err != nil {
 			return fmt.Errorf("read egg: %w", err)
 		}
 		if !bytes.Equal(normalize(current), normalize(buf.Bytes())) {
-			return fmt.Errorf("%s is out of date; run: go run ./scripts/sync-egg", eggPath)
+			return fmt.Errorf("%s is out of date; run: go run ./scripts/sync-egg", path)
 		}
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(eggPath), 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
-	return os.WriteFile(eggPath, buf.Bytes(), 0o644) //nolint:gosec // the egg is a public, non-secret artifact
+	return os.WriteFile(path, buf.Bytes(), 0o644) //nolint:gosec // the egg is a public, non-secret artifact
+}
+
+func buildBrowser(script string) egg {
+	e := build(script)
+	e.Name = "Kest with Chromium"
+	e.Description += " Requires the custom browser image built from deploy/docker/Dockerfile.browser and host support for Chromium user namespaces."
+	e.DockerImages = map[string]string{"Chromium (local image on Wings node)": "~kest-browser:local"}
+	for i := range e.Variables {
+		if e.Variables[i].EnvVariable == "KEST_PLUGINS" {
+			e.Variables[i].DefaultValue += ",browser"
+		}
+	}
+	e.Variables = append(e.Variables,
+		variable{Name: "Chromium Sandbox", Description: "Keep true. The Wings host must support Chromium user namespaces; no automatic fallback is allowed.", EnvVariable: "KEST_BROWSER_SANDBOX", DefaultValue: "true", UserViewable: true, UserEditable: false, Rules: "required|string|in:true,false", FieldType: "text"},
+		variable{Name: "Headless Browser", Description: "Use false only with the desktop image and a private noVNC tunnel.", EnvVariable: "KEST_BROWSER_HEADLESS", DefaultValue: "true", UserViewable: true, UserEditable: true, Rules: "required|string|in:true,false", FieldType: "text"},
+	)
+	return e
 }
 
 // normalize makes the comparison independent of line endings (git may convert
@@ -260,7 +284,7 @@ func build(script string) egg {
 			},
 			{
 				Name:         "Plugins",
-				Description:  "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch.",
+				Description:  "Built-in plugins to load, comma separated. Available: reminders, tasks, webfetch, browser (requires the browser runtime image).",
 				EnvVariable:  "KEST_PLUGINS",
 				DefaultValue: "reminders,tasks,webfetch",
 				UserViewable: true,

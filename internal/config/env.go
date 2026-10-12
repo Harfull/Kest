@@ -12,27 +12,30 @@ import (
 //
 //nolint:gosec // G101 false positive: variable names, not secret values
 const (
-	envConfig         = "KEST_CONFIG"
-	envDataDir        = "KEST_DATA_DIR"
-	envTimezone       = "KEST_TIMEZONE"
-	envLogLevel       = "KEST_LOG_LEVEL"
-	envLogFormat      = "KEST_LOG_FORMAT"
-	envLogSensitive   = "KEST_LOG_SENSITIVE"
-	envTelegramToken  = "KEST_TELEGRAM_TOKEN"
-	envOwnerID        = "KEST_OWNER_ID"
-	envOpenRouterKey  = "KEST_OPENROUTER_API_KEY"
-	envOpenRouterURL  = "KEST_OPENROUTER_BASE_URL"
-	envModelGeneral   = "KEST_MODEL_GENERAL"
-	envModelFallbacks = "KEST_MODEL_FALLBACKS"
-	envModelTranscr   = "KEST_MODEL_TRANSCRIPTION"
-	envModelTTS       = "KEST_MODEL_TTS"
-	envTTSVoice       = "KEST_TTS_VOICE"
-	envDailyBudget    = "KEST_DAILY_BUDGET_USD"
-	envZDROnly        = "KEST_ZDR_ONLY"
-	envMaxProactive   = "KEST_MAX_PROACTIVE_PER_DAY"
-	envQuietStart     = "KEST_QUIET_START"
-	envQuietEnd       = "KEST_QUIET_END"
-	envPlugins        = "KEST_PLUGINS"
+	envConfig          = "KEST_CONFIG"
+	envDataDir         = "KEST_DATA_DIR"
+	envTimezone        = "KEST_TIMEZONE"
+	envLogLevel        = "KEST_LOG_LEVEL"
+	envLogFormat       = "KEST_LOG_FORMAT"
+	envLogSensitive    = "KEST_LOG_SENSITIVE"
+	envTelegramToken   = "KEST_TELEGRAM_TOKEN"
+	envOwnerID         = "KEST_OWNER_ID"
+	envOpenRouterKey   = "KEST_OPENROUTER_API_KEY"
+	envOpenRouterURL   = "KEST_OPENROUTER_BASE_URL"
+	envModelGeneral    = "KEST_MODEL_GENERAL"
+	envModelFallbacks  = "KEST_MODEL_FALLBACKS"
+	envModelTranscr    = "KEST_MODEL_TRANSCRIPTION"
+	envModelTTS        = "KEST_MODEL_TTS"
+	envTTSVoice        = "KEST_TTS_VOICE"
+	envDailyBudget     = "KEST_DAILY_BUDGET_USD"
+	envZDROnly         = "KEST_ZDR_ONLY"
+	envMaxProactive    = "KEST_MAX_PROACTIVE_PER_DAY"
+	envQuietStart      = "KEST_QUIET_START"
+	envQuietEnd        = "KEST_QUIET_END"
+	envPlugins         = "KEST_PLUGINS"
+	envBrowserModule   = "KEST_BROWSER_MODULE_PATH"
+	envBrowserHeadless = "KEST_BROWSER_HEADLESS"
+	envBrowserSandbox  = "KEST_BROWSER_SANDBOX"
 )
 
 // LookupFunc reads an environment variable. os.LookupEnv satisfies it.
@@ -116,6 +119,31 @@ func applyEnv(cfg *Config, lookup LookupFunc) error {
 	}
 	str(envQuietStart, &cfg.Coach.QuietStart)
 	str(envQuietEnd, &cfg.Coach.QuietEnd)
+
+	for _, id := range cfg.EnabledPlugins {
+		if id != "browser" {
+			continue
+		}
+		if cfg.Plugins == nil {
+			cfg.Plugins = map[string]map[string]any{}
+		}
+		if cfg.Plugins[id] == nil {
+			cfg.Plugins[id] = map[string]any{}
+		}
+		if value, ok := get(envBrowserModule); ok {
+			cfg.Plugins[id]["module_path"] = value
+		}
+		for _, setting := range []struct{ env, key string }{{envBrowserHeadless, "headless"}, {envBrowserSandbox, "sandbox"}} {
+			if value, ok := get(setting.env); ok {
+				b, err := strconv.ParseBool(value)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("%s: not a boolean", setting.env))
+					continue
+				}
+				cfg.Plugins[id][setting.key] = b
+			}
+		}
+	}
 
 	return errors.Join(errs...)
 }

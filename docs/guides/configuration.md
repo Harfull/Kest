@@ -28,7 +28,6 @@ Kest looks for each `KEST_*` variable in this order and uses the first it finds:
 
 On Linux and macOS the secrets file must be mode 0600. Kest refuses to start if group or others can read it, and the error shows the `chmod 600` command to fix it. Windows has no such permission bits, so the check is skipped there.
 
-
 ## General
 
 | Env var | TOML | Default | Meaning |
@@ -98,3 +97,15 @@ max_chars = 6000
 ```
 
 Each plugin's README lists its settings. Settings for a plugin that is not enabled are a configuration error. Format details: [../architecture/plugins.md](../architecture/plugins.md).
+
+## Browser settings
+
+The opt-in `browser` plugin requires its separate runtime. See [browser deployment](../deployment/browser.md) and [plugin settings](../../plugins/browser/README.md). Add `browser` to `KEST_PLUGINS` before defining `[plugins.browser]`.
+
+| Env var | TOML under `plugins.browser` | Default |
+| --- | --- | --- |
+| `KEST_BROWSER_MODULE_PATH` | `module_path` | `/opt/kest-browser/node_modules/playwright` |
+| `KEST_BROWSER_HEADLESS` | `headless` | `true` |
+| `KEST_BROWSER_SANDBOX` | `sandbox` | `true` |
+
+Browser env overrides only apply when the plugin is enabled. `KEST_SECRET_BROWSER_VNC_PASSWORD` is consumed by the optional desktop supervisor, not by the Go configuration loader; it is not passed to the browser worker.

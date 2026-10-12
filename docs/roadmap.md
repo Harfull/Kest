@@ -108,3 +108,7 @@ Exit criteria: a 60 day simulated owner never receives a message in quiet hours 
 | Gmail OAuth friction | Offer IMAP/SMTP app-password path first |
 | Sleep inference inaccurate | Always show confidence, ask for quick confirmations, never act on low confidence alone |
 | Health sensitivity | No medical advice, no extreme targets, safe-completion path |
+
+## Optional browser delivered
+
+The opt-in native `browser` plugin adds persistent Chromium through Playwright, bounded page interaction, inbox uploads and local screenshots with outbound approval. Browser-specific Pterodactyl and Docker setup, standalone runtime instructions and private noVNC viewing are included. [Deployment](deployment/browser.md) documents host sandbox prerequisites and the remaining limitation that screenshots are local artifacts rather than Telegram attachments or model vision inputs.

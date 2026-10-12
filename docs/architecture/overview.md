@@ -117,3 +117,7 @@ Defaults, then `config.toml` in the data directory, then `KEST_*` environment va
 - New integration: add a plugin package ([plugins.md](plugins.md)).
 - New coaching domain: add a coach module implementing `coach.Module` ([coach-engine.md](coach-engine.md)).
 - New channel (for example Signal): implement the `telegram.Transport`-style interface in a new package; `agent` is channel-agnostic through `Outbox` and `Inbox`.
+
+## Optional real browser
+
+The opt-in [browser plugin](../../plugins/browser/README.md) owns an embedded Node/Playwright worker over private pipes, a persistent Chromium profile in its scoped data directory, and an authenticated loopback web proxy. It uses the registry's network guard and the agent's outbound approvals. The browser deployment is an explicit optional runtime exception to the static-binary default; see [ADR 0008](../decisions/0008-optional-browser-runtime.md) and [deployment](../deployment/browser.md).

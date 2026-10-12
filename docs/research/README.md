@@ -36,3 +36,7 @@ Create `docs/research/<topic>/README.md` using the template below, link it from 
 ## Decision
 ## Open questions
 ```
+
+## Optional browser research
+
+See [browser/](browser/README.md) for Chromium, Playwright, persistent profiles, Pterodactyl constraints and private desktop viewing.

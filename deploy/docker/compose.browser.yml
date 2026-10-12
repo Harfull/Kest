@@ -1,0 +1,24 @@
+services:
+  kest:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.browser
+      target: headless
+    image: kest-browser:local
+    restart: unless-stopped
+    env_file: ../../.env
+    environment:
+      KEST_PLUGINS: reminders,tasks,webfetch,browser
+    volumes:
+      - kest-browser-data:/home/container/data
+    # A private /dev/shm avoids sharing IPC with the host.
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=../browser/seccomp_profile.json
+    cap_drop: [ALL]
+    stop_signal: SIGTERM
+    stop_grace_period: 15s
+
+volumes:
+  kest-browser-data:

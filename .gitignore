@@ -13,6 +13,8 @@
 /kest.exe
 
 # Go tooling
+/node_modules/
+**/node_modules/
 /vendor/
 coverage.out
 coverage.html

@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -20,9 +23,11 @@ const initTimeout = 30 * time.Second
 // Deps are the shared services the registry hands to plugins, each scoped per
 // plugin through a function so one plugin cannot reach another's data.
 type Deps struct {
-	Log   *slog.Logger
-	Clock clock.Clock
-	Loc   *time.Location
+	// DataDir is the application data root; plugin directories are scoped by ID.
+	DataDir string
+	Log     *slog.Logger
+	Clock   clock.Clock
+	Loc     *time.Location
 	// KV returns storage scoped to the given plugin ID.
 	KV func(pluginID string) KV
 	// Jobs returns job scheduling scoped to the given plugin ID.
@@ -301,6 +306,24 @@ func (h *host) Notify(ctx context.Context, n Notification) error {
 		return errors.New("empty notification")
 	}
 	return h.r.d.Notifier(ctx, n)
+}
+
+func (h *host) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return DialContext(ctx, h.m.Capabilities.Network, network, address)
+}
+
+func (h *host) DataDir() (string, error) {
+	if !h.m.Capabilities.Files || h.r.d.DataDir == "" {
+		return "", errors.New("plugin files capability is unavailable")
+	}
+	dir, err := filepath.Abs(filepath.Join(h.r.d.DataDir, "plugins", h.m.ID))
+	if err != nil {
+		return "", fmt.Errorf("resolve plugin directory: %w", err)
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", fmt.Errorf("create plugin directory: %w", err)
+	}
+	return dir, nil
 }
 
 // Fail records that a plugin could not be loaded for a reason found before a

@@ -69,3 +69,20 @@ func TestStartupDoneMatchesAppReadyMessage(t *testing.T) {
 		t.Error("egg startup.done does not match app.ReadyMessage")
 	}
 }
+
+func TestBrowserEggUsesRuntimeAndSafeDefaults(t *testing.T) {
+	e := buildBrowser("installer")
+	if e.DockerImages["Chromium (local image on Wings node)"] != "~kest-browser:local" {
+		t.Fatal("browser image missing")
+	}
+	settings := map[string]string{}
+	for _, v := range e.Variables {
+		settings[v.EnvVariable] = v.DefaultValue
+	}
+	if !strings.Contains(settings["KEST_PLUGINS"], "browser") || settings["KEST_BROWSER_SANDBOX"] != "true" {
+		t.Fatal("unsafe or disabled browser defaults")
+	}
+	if e.Scripts.Installation.Script != "installer" {
+		t.Fatal("browser egg lost checksum installer")
+	}
+}

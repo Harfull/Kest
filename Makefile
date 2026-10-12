@@ -71,3 +71,11 @@ check: fmt-check egg-check gen-check vet lint test ## Everything CI runs; run be
 .PHONY: clean
 clean: ## Remove build output
 	rm -rf bin dist coverage.out coverage.html
+
+.PHONY: browser-check
+browser-check: ## Check the optional Node browser worker (Node 20+ required)
+	npm --prefix deploy/browser test
+
+.PHONY: browser-build
+browser-build: ## Build the optional headless Chromium runtime image
+	docker build --target headless -f deploy/docker/Dockerfile.browser -t kest-browser:local .

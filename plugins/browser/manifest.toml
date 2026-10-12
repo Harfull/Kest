@@ -1,0 +1,47 @@
+id = "browser"
+name = "Browser"
+version = "0.1.0"
+description = "Operate a private persistent Chromium browser through Playwright."
+
+[capabilities]
+network = ["*"]
+files = true
+
+[config]
+node_path = { type = "string", default = "node" }
+module_path = { type = "string", default = "/opt/kest-browser/node_modules/playwright" }
+headless = { type = "bool", default = true }
+sandbox = { type = "bool", default = true }
+timeout_seconds = { type = "int", default = 30 }
+max_chars = { type = "int", default = 12000 }
+
+[[tools]]
+name = "navigate_page"
+risk = "write"
+[[tools]]
+name = "read_page"
+risk = "read"
+[[tools]]
+name = "click_element"
+risk = "write"
+[[tools]]
+name = "fill_field"
+risk = "write"
+[[tools]]
+name = "press_key"
+risk = "write"
+[[tools]]
+name = "scroll_page"
+risk = "read"
+[[tools]]
+name = "upload_file"
+risk = "write"
+[[tools]]
+name = "capture_screenshot"
+risk = "read"
+[[tools]]
+name = "list_tabs"
+risk = "read"
+[[tools]]
+name = "close_tab"
+risk = "write"

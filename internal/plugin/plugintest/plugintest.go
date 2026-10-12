@@ -5,6 +5,7 @@ package plugintest
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
@@ -121,6 +122,7 @@ func (j *MemJobs) List(context.Context) ([]plugin.JobInfo, error) {
 // Host is a fake plugin.Host. Fields are exported so tests can set them up and
 // inspect results.
 type Host struct {
+	Dir      string
 	Clk      *clock.Fake
 	Zone     *time.Location
 	Cfg      plugin.Config
@@ -168,6 +170,19 @@ func (h *Host) Jobs() plugin.Jobs { return h.JobStore }
 
 // HTTP implements plugin.Host.
 func (h *Host) HTTP() *http.Client { return h.Client }
+
+// DialContext implements plugin.Host with the production network guard.
+func (h *Host) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return plugin.DialContext(ctx, []string{"*"}, network, address)
+}
+
+// DataDir implements plugin.Host.
+func (h *Host) DataDir() (string, error) {
+	if h.Dir == "" {
+		return "", plugin.ErrNotFound
+	}
+	return h.Dir, nil
+}
 
 // Secret implements plugin.Host.
 func (h *Host) Secret(name string) (string, error) {
@@ -238,7 +253,9 @@ func RunContract(t *testing.T, f plugin.Factory, cfg map[string]any) {
 		t.Fatalf("manifest invalid: %v", err)
 	}
 
-	reg := plugin.NewRegistry(Deps())
+	d := Deps()
+	d.DataDir = t.TempDir()
+	reg := plugin.NewRegistry(d)
 	if err := reg.Load(ctx, m.ID, f, cfg); err != nil {
 		t.Fatalf("plugin failed to load: %v", err)
 	}

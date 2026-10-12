@@ -86,3 +86,7 @@ make egg
 CI fails if the committed egg is stale (`make egg-check`). Per [AGENTS.md](../../AGENTS.md), any change to environment variables, ports, startup command or data layout must update the egg in the same batch.
 
 The egg is attached to every release. The format was cross-checked against public references; if a panel rejects the import or shows a field wrongly, open an issue with the panel version.
+
+## Optional Chromium browser
+
+For persistent Chromium and Playwright, use the separate [browser egg and runtime setup](browser.md). It needs a custom image built on the Wings node and host support for Chromium's sandbox; the ordinary installer alone cannot install the runtime's browser libraries.

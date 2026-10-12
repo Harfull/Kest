@@ -42,3 +42,8 @@ max_open = 200
 
 [plugins.webfetch]
 max_chars = 6000
+# Optional browser: add "browser" to enabled_plugins (or KEST_PLUGINS) first.
+# [plugins.browser]
+# module_path = "/opt/kest-browser/node_modules/playwright"
+# headless = true
+# sandbox = true

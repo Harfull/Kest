@@ -1,0 +1,8 @@
+services:
+  kest:
+    build:
+      target: desktop
+    environment:
+      KEST_BROWSER_HEADLESS: "false"
+    ports:
+      - "127.0.0.1:6080:6080"

@@ -32,3 +32,7 @@ docker build -f deploy/docker/Dockerfile -t kest:dev .
 - No ports are exposed; Kest only makes outbound HTTPS connections.
 - Stop with `docker stop`; Kest exits within 10 seconds on SIGTERM.
 - The MCP plugin's stdio servers that need Node or Python are not available in the distroless image. Use remote (HTTP) MCP servers, or build a custom image on a base that has the runtime you need.
+
+## Optional Chromium browser
+
+Use the [browser deployment guide](browser.md) and `deploy/docker/compose.browser.yml` to add Chromium and Playwright. The default distroless image does not include Node or a browser. The optional desktop Compose override adds private noVNC viewing and manual login.

@@ -174,6 +174,7 @@ func (a *App) Run(ctx context.Context) error {
 	c.confirm = conf
 
 	reg := plugin.NewRegistry(plugin.Deps{
+		DataDir:  a.cfg.DataDir,
 		Log:      a.log,
 		Clock:    a.clock,
 		Loc:      a.loc,
