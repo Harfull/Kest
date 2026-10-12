@@ -8,6 +8,7 @@ import (
 	"github.com/Harfull/Kest/internal/plugin"
 
 	"github.com/Harfull/Kest/plugins/browser"
+	"github.com/Harfull/Kest/plugins/gmail"
 	"github.com/Harfull/Kest/plugins/mailbox"
 	"github.com/Harfull/Kest/plugins/reminders"
 	"github.com/Harfull/Kest/plugins/tasks"
@@ -18,6 +19,7 @@ import (
 func All() map[string]plugin.Factory {
 	return map[string]plugin.Factory{
 		"browser":   browser.New,
+		"gmail":     gmail.New,
 		"mailbox":   mailbox.New,
 		"reminders": reminders.New,
 		"tasks":     tasks.New,

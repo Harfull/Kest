@@ -1,0 +1,38 @@
+id = "gmail"
+name = "Gmail"
+version = "0.1.0"
+description = "Read, search, draft and send Gmail through the Gmail API."
+
+[capabilities]
+network = ["gmail.googleapis.com", "oauth2.googleapis.com"]
+secrets = ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"]
+jobs = true
+
+[config]
+from_address = { type = "string", default = "" }
+from_name = { type = "string", default = "" }
+max_chars = { type = "int", default = 6000 }
+nudges = { type = "bool", default = false }
+nudge_minutes = { type = "int", default = 15 }
+nudge_from = { type = "string", default = "" }
+nudge_subject_words = { type = "string", default = "" }
+
+[[tools]]
+name = "search_mail"
+risk = "read"
+
+[[tools]]
+name = "read_mail"
+risk = "read"
+
+[[tools]]
+name = "draft_mail"
+risk = "write"
+
+[[tools]]
+name = "send_mail"
+risk = "destructive"
+
+[[tools]]
+name = "mark_mail_read"
+risk = "write"
