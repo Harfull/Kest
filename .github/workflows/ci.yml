@@ -36,7 +36,7 @@ jobs:
         run: make vet
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           # "latest" so the linter is always built with a Go version that can
           # read our go.mod. Revisit when the lint toolchain stabilizes.
